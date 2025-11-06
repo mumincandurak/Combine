@@ -8,7 +8,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
-import { COLORS } from '../constants/colors';
+import { COLORS } from '../colors';
 import { Ionicons } from '@expo/vector-icons';
 // import { useHeaderHeight } from '@react-navigation/elements'; // <-- SİLİNDİ
 
