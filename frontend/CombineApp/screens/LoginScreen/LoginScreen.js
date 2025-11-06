@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context'; // Eklendi
 import { LinearGradient } from 'expo-linear-gradient'; // Eklendi
-import { COLORS } from '../constants/colors';
+import { COLORS } from '../colors';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
