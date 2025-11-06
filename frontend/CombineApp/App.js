@@ -3,20 +3,20 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from './constants/colors';
+import { COLORS } from './colors';
 
 // Ekranlar
-import LoginScreen from './screens/LoginScreen';
-import RegisterScreen from './screens/RegisterScreen';
-import HomeScreen from './screens/HomeScreen';
-import WardrobeScreen from './screens/WardrobeScreen';
-import ProfileScreen from './screens/ProfileScreen';
-import SettingsScreen from './screens/SettingsScreen';
-import EditProfileScreen from './screens/EditProfileScreen';
-import EditStyleScreen from './screens/EditStyleScreen';
-import EditDatesScreen from './screens/EditDatesScreen';
-import StatisticsScreen from './screens/StatisticsScreen';
-import AddClothingScreen from './screens/AddClothingScreen';
+import LoginScreen from './screens/LoginScreen/LoginScreen';
+import RegisterScreen from './screens/RegisterScreen/RegisterScreen';
+import HomeScreen from './screens/HomeScreen/HomeScreen';
+import WardrobeScreen from './screens/WardrobeScreen/WardrobeScreen';
+import ProfileScreen from './screens/ProfileScreen/ProfileScreen';
+import SettingsScreen from './screens/SettingsScreen/SettingsScreen';
+import EditProfileScreen from './screens/EditProfileScreen/EditProfileScreen';
+import EditStyleScreen from './screens/EditStyleScreen/EditStyleScreen';
+import EditDatesScreen from './screens/EditDatesScreen/EditDatesScreen';
+import StatisticsScreen from './screens/StatisticsScreen/StatisticsScreen';
+import AddClothingScreen from './screens/AddClothingScreen/AddClothingScreen';
 
 // Navigatörler
 const Stack = createStackNavigator();
