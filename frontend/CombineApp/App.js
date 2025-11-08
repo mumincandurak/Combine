@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { View, ActivityIndicator } from 'react-native';
 import { COLORS } from './colors';
 
 // Ekranlar
@@ -23,8 +25,6 @@ const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 const ProfileStack = createStackNavigator();
 const WardrobeStack = createStackNavigator();
-
-const userIsLoggedIn = true; 
 
 // --- BAŞLIK STİLLERİ GÜNCELLENDİ (SOLID/DÜZ RENK) ---
 const darkScreenOptions = {
@@ -122,10 +122,38 @@ function MainTabs() {
   );
 }
 
-export default function App() {
+function RootNavigator() {
+  const { token, restoreToken } = useAuth();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const bootstrapAsync = async () => {
+      await restoreToken();
+      setLoading(false);
+    };
+
+    bootstrapAsync();
+  }, [restoreToken]);
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
+  }
+
   return (
     <NavigationContainer>
-      {userIsLoggedIn ? <MainTabs /> : <AuthStack />}
+      {token ? <MainTabs /> : <AuthStack />}
     </NavigationContainer>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <RootNavigator />
+    </AuthProvider>
   );
 }

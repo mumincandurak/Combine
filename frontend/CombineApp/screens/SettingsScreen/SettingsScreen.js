@@ -10,6 +10,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../colors';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../../context/AuthContext';
 // import { useHeaderHeight } from '@react-navigation/elements'; // <-- SİLİNDİ
 
 // Menü butonu bileşeni (Aynı)
@@ -24,10 +25,12 @@ const SettingsMenuItem = ({ title, iconName, onPress }) => (
 );
 
 const SettingsScreen = ({ navigation }) => {
+  const { logout } = useAuth();
+
   const handleLogout = () => {
     Alert.alert("Log Out", "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
-      { text: "Log Out", onPress: () => console.log("Çıkış yapıldı!"), style: "destructive" },
+      { text: "Log Out", onPress: () => logout(), style: "destructive" },
     ]);
   };
   

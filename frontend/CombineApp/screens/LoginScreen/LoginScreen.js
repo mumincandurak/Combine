@@ -12,23 +12,19 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context'; // Eklendi
 import { LinearGradient } from 'expo-linear-gradient'; // Eklendi
 import { COLORS } from '../colors';
+import { useAuth } from '../../context/AuthContext';
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  // Giriş yap butonuna basıldığında
-  const handleLogin = () => {
-    console.log('Login Tıklandı:', { email, password });
-    
-    // --- SİMÜLASYON ---
-    // Normalde burada backend'e istek atılır.
-    // Biz burada 'userIsLoggedIn'i değiştiremiyoruz (o App.js'de).
-    // O yüzden şimdilik sadece bir uyarı verip, 
-    // App.js'deki 'userIsLoggedIn = true' sayesinde zaten 
-    // ana ekranda olduğumuzu varsayıyoruz.
-    // Bu kısmı en son "Context" ile düzelteceğiz.
-    Alert.alert('Giriş Başarılı (Simülasyon)', 'Ana ekrana yönlendiriliyorsunuz...');
+  const { login } = useAuth(); // login fonksiyonunu context'ten al
+  const handleLogin = async () => {
+    const success = await login(email, password);
+    if (!success) {
+      Alert.alert("Giriş Başarısız", "Lütfen bilgilerinizi kontrol edin.");
+    }
+    // Başarılı olursa, App.js'teki RootNavigator otomatik olarak sizi ana ekrana yönlendirecektir.
   };
 
   return (

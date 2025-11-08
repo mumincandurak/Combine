@@ -7,21 +7,24 @@ import {
   TouchableOpacity, 
   KeyboardAvoidingView, 
   Platform,
-  Alert
+  Alert,
+  ActivityIndicator
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context'; // Eklendi
-import { LinearGradient } from 'expo-linear-gradient'; // Eklendi
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../colors';
+import apiClient from '../../api/client';
 
 const RegisterScreen = ({ navigation }) => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (password !== confirmPassword) {
-      Alert.alert("Passwords don't match!"); // İngilizce
+      Alert.alert("Passwords don't match!");
       return;
     }
     
@@ -30,10 +33,24 @@ const RegisterScreen = ({ navigation }) => {
       return;
     }
 
-    console.log('Register Tıklandı:', { username, email, password });
-    
-    Alert.alert('Registration Successful!', 'Please log in.'); // İngilizce
-    navigation.navigate('Login'); 
+    setLoading(true);
+    try {
+      const response = await apiClient.post('/auth/register', {
+        username,
+        email,
+        password,
+      });
+
+      if (response.data) {
+        Alert.alert('Registration Successful!', 'Please log in.');
+        navigation.navigate('Login');
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || 'An unexpected error occurred.';
+      Alert.alert('Registration Failed', errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -87,8 +104,12 @@ const RegisterScreen = ({ navigation }) => {
               secureTextEntry={true}
             />
 
-            <TouchableOpacity style={styles.button} onPress={handleRegister}>
-              <Text style={styles.buttonText}>Sign Up</Text>
+            <TouchableOpacity style={styles.button} onPress={handleRegister} disabled={loading}>
+              {loading ? (
+                <ActivityIndicator color={COLORS.primaryText} />
+              ) : (
+                <Text style={styles.buttonText}>Sign Up</Text>
+              )}
             </TouchableOpacity>
 
             <View style={styles.loginLinkContainer}>

@@ -8,14 +8,14 @@ const router = express.Router();
 // Kayıt (Register)
 router.post("/register", async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { username, email, password } = req.body;
 
-    const existingUser = await User.findOne({ username });
+    const existingUser = await User.findOne({ email });
     if (existingUser)
       return res.status(400).json({ message: "Kullanıcı zaten var" });
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ username, password: hashedPassword });
+    const user = new User({ username, email, password: hashedPassword });
     await user.save();
 
     res.status(201).json({ message: "Kayıt başarılı" });
@@ -27,9 +27,9 @@ router.post("/register", async (req, res) => {
 // Giriş (Login)
 router.post("/login", async (req, res) => {
   try {
-    const { username, password } = req.body;
+    const { email, password } = req.body;
 
-    const user = await User.findOne({ username });
+    const user = await User.findOne({ email });
     if (!user)
       return res.status(404).json({ message: "Kullanıcı bulunamadı" });
 
