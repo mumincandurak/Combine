@@ -90,7 +90,7 @@ function MainTabs() {
           backgroundColor: COLORS.primary, // Açık lila arka plan
           borderTopWidth: 0,
           elevation: 0,
-          height: 60,
+          //height: 60, önceki hali
         },
       }}
     >
