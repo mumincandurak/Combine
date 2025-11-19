@@ -28,21 +28,32 @@ const WardrobeStack = createStackNavigator();
 
 // --- BAŞLIK STİLLERİ GÜNCELLENDİ (SOLID/DÜZ RENK) ---
 const darkScreenOptions = {
-  // headerTransparent: true, // <-- KAPATILDI
-  
-  headerStyle: {
-    // YENİ: Başlık arka planı, gradient'in başlangıç rengiyle aynı
-    backgroundColor: COLORS.gradient[0], // ('#090040')
-    shadowOpacity: 0, 
-    elevation: 0,
-    borderBottomWidth: 0, // Çizgi yok (gradient ile bütünleşsin)
-  },
-  headerTintColor: COLORS.textPrimary, // Başlık yazısı (Beyaz)
-  headerTitleStyle: {
-    fontWeight: 'bold',
-    fontSize: 18, 
-  },
-  headerTitleAlign: 'center', 
+    // headerTransparent: true, // <-- KAPATILDI
+
+    headerStyle: {
+        // YENİ: Başlık arka planı, gradient'in başlangıç rengiyle aynı
+        backgroundColor: COLORS.gradient[0], // ('#090040')
+        shadowOpacity: 0,
+        elevation: 0,
+        borderBottomWidth: 0, // Çizgi yok (gradient ile bütünleşsin)
+        height: 56, // <-- Küçültmek için burayı değiştir (örnek: 56)
+    },
+    headerTintColor: COLORS.textPrimary, // Başlık yazısı (Beyaz)
+    headerTitleStyle: {
+        fontWeight: "bold",
+        fontSize: 22,// 18 önceki değer
+    },
+    headerTitleContainerStyle: {
+        height: 56, // headerStyle.height ile eşleştir
+        justifyContent: "center",
+    },
+    headerTitleAlign: "center",
+
+    //headerBackTitleVisible: false, // Android/iOS'da metin kaldırır
+    headerLeftContainerStyle: {
+        paddingLeft: 0, // sola uzaklık
+        paddingVertical: 27, // dikey konum için ayar (gerekirse değiştir)
+    },
 };
 
 function AuthStack() {
