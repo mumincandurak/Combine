@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
     View,
     Text,
@@ -6,163 +6,313 @@ import {
     TextInput,
     FlatList,
     TouchableOpacity,
-    Image,
-    Alert
+    Alert,
+    ActivityIndicator
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../colors';
 import { Ionicons } from '@expo/vector-icons';
-// import { useHeaderHeight } from '@react-navigation/elements'; // <-- SİLİNDİ
-
-const dummyWardrobeData = [
-    { id: '1', category: 'Top', color: 'White', season: 'Summer', imageUrl: 'https://via.placeholder.com/100/FFFFFF/1B1229?text=T-Shirt' },
-    { id: '2', category: 'Bottom', color: 'Blue', season: 'All', imageUrl: 'https://via.placeholder.com/100/3498db/FFFFFF?text=Jeans' },
-    { id: '3', category: 'Shoes', color: 'Black', season: 'Winter', imageUrl: 'https://via.placeholder.com/100/000000/FFFFFF?text=Boots' },
-];
-
-const ClothingCard = ({ item, onDelete, onEdit }) => (
-    <View style={styles.card}>
-        <Image source={{ uri: item.imageUrl }} style={styles.cardImage} />
-        <View style={styles.cardInfo}>
-            <Text style={styles.cardCategory}>{item.category}</Text>
-            <Text style={styles.cardDetails}>{item.color} / {item.season}</Text>
-        </View>
-        <View style={styles.cardActions}>
-            <TouchableOpacity onPress={onEdit} style={styles.actionButton}>
-                <Ionicons name="pencil" size={20} color={COLORS.primary} />
-            </TouchableOpacity>
-            <TouchableOpacity onPress={onDelete} style={styles.actionButton}>
-                <Ionicons name="trash-bin" size={20} color={'#E74C3C'} />
-            </TouchableOpacity>
-        </View>
-    </View>
-);
+import { useFocusEffect } from '@react-navigation/native';
+import * as clothingApi from '../../api/clothing';
+import ClothingCard from '../../components/ClothingCard';
+import ClothingDetailModal from '../../components/ClothingDetailModal';
+import SelectionModal from '../../components/SelectionModal';
+import { CATEGORIES, COLORS_OPTIONS, SEASONS } from '../../constants/options';
 
 const WardrobeScreen = ({ navigation }) => {
+    // General State
+    const [clothes, setClothes] = useState([]);
+    const [loading, setLoading] = useState(true);
+    
+    // Search & Filter State
     const [searchQuery, setSearchQuery] = useState('');
-    const [clothes, setClothes] = useState(dummyWardrobeData);
+    const [filteredClothes, setFilteredClothes] = useState([]);
+    const [filtersVisible, setFiltersVisible] = useState(false);
+    
+    const [selectedCategory, setSelectedCategory] = useState(null);
+    const [selectedColor, setSelectedColor] = useState(null);
+    const [selectedSeason, setSelectedSeason] = useState(null);
+    const [isAnyFilterActive, setIsAnyFilterActive] = useState(false);
 
-    // ... (handleDelete, handleEdit, handleAddPhoto fonksiyonları aynı)
-    const handleDelete = (idToDelete) => {
-        Alert.alert("Delete Item", "Are you sure you want to delete this item?", [
-            { text: "Cancel", style: "cancel" },
-            { text: "Delete", style: "destructive", onPress: () => setClothes(clothes.filter(item => item.id !== idToDelete)) },
-        ]);
+    // Modal State
+    const [detailModalVisible, setDetailModalVisible] = useState(false);
+    const [selectedItem, setSelectedItem] = useState(null);
+    const [isCategoryModalVisible, setCategoryModalVisible] = useState(false);
+    const [isColorModalVisible, setColorModalVisible] = useState(false);
+    const [isSeasonModalVisible, setSeasonModalVisible] = useState(false);
+
+    // Fetching Data
+    const fetchClothes = useCallback(async () => {
+        setLoading(true);
+        try {
+            const response = await clothingApi.getClothingItems();
+            if (response && Array.isArray(response.data)) {
+                setClothes(response.data);
+                setFilteredClothes(response.data);
+            } else {
+                Alert.alert("Error", "Could not fetch clothing items. Please try again.");
+                setClothes([]);
+            }
+        } catch (error) {
+            console.error("Error fetching clothes:", error);
+            Alert.alert("Error", "An unexpected error occurred.");
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchClothes();
+        }, [fetchClothes])
+    );
+
+    // Filtering Logic
+    useEffect(() => {
+        let result = clothes;
+
+        const anyFilterActive = searchQuery || selectedCategory || selectedColor || selectedSeason;
+        setIsAnyFilterActive(anyFilterActive);
+
+        if (searchQuery) {
+            result = result.filter(item =>
+                item.name && item.name.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+        }
+        if (selectedCategory) {
+            const categoryLabel = CATEGORIES.find(c => c.value === selectedCategory)?.label;
+            result = result.filter(item => item.category === categoryLabel);
+        }
+        if (selectedColor) {
+            const colorLabel = COLORS_OPTIONS.find(c => c.value === selectedColor)?.label;
+            result = result.filter(item => item.color === colorLabel);
+        }
+        if (selectedSeason) {
+            const seasonLabel = SEASONS.find(s => s.value === selectedSeason)?.label;
+            result = result.filter(item => item.season === seasonLabel);
+        }
+
+        setFilteredClothes(result);
+    }, [clothes, searchQuery, selectedCategory, selectedColor, selectedSeason]);
+
+    // Handlers
+    const handleCardLongPress = (item) => {
+        setSelectedItem(item);
+        setDetailModalVisible(true);
     };
-    const handleEdit = (item) => console.log('Düzenlenecek:', item);
+
+    const handleCloseDetailModal = () => {
+        setDetailModalVisible(false);
+        setSelectedItem(null);
+    };
+    
+    const handleClearFilters = () => {
+        setSelectedCategory(null);
+        setSelectedColor(null);
+        setSelectedSeason(null);
+        setSearchQuery('');
+    };
+    
+    const handleSelectCategory = (category) => {
+        setSelectedCategory(category.value);
+        setCategoryModalVisible(false);
+    };
+    const handleSelectColor = (color) => {
+        setSelectedColor(color.value);
+        setColorModalVisible(false);
+    };
+    const handleSelectSeason = (season) => {
+        setSelectedSeason(season.value);
+        setSeasonModalVisible(false);
+    };
+
     const handleAddPhoto = () => navigation.navigate('AddClothing');
 
-    // const headerHeight = useHeaderHeight(); // <-- SİLİNDİ
+    // Render Components
+    const renderItem = ({ item }) => (
+        <ClothingCard 
+            item={item}
+            onCardLongPress={() => handleCardLongPress(item)}
+        />
+    );
+
+    const getButtonText = (options, value) => {
+        if (!value) return null;
+        return options.find(opt => opt.value === value)?.label;
+    };
 
     return (
-        <LinearGradient
-            colors={COLORS.gradient} 
-            style={styles.gradient}
-        >
+        <LinearGradient colors={COLORS.gradient} style={styles.gradient}>
             <SafeAreaView style={styles.container}>
-                {/* 1. Arama Çubuğu (Kaymıyor) */}
-                <View style={styles.searchContainer}>
-                    <TextInput
-                        style={styles.searchInput}
-                        placeholder="Search in your wardrobe..."
-                        placeholderTextColor={COLORS.gray}
-                        value={searchQuery}
-                        onChangeText={setSearchQuery}
-                    />
-                    <TouchableOpacity style={styles.filterButton}>
-                        <Ionicons name="filter" size={24} color={COLORS.primary} />
+                <View style={styles.header}>
+                    <View style={styles.searchContainer}>
+                        <Ionicons name="search" size={20} color={COLORS.gray} style={styles.searchIcon} />
+                        <TextInput
+                            style={styles.searchInput}
+                            placeholder="Search in your wardrobe"
+                            placeholderTextColor={COLORS.gray}
+                            value={searchQuery}
+                            onChangeText={setSearchQuery}
+                        />
+                    </View>
+                    <TouchableOpacity style={styles.filterButton} onPress={() => setFiltersVisible(!filtersVisible)}>
+                        <Ionicons name="filter" size={24} color={filtersVisible ? COLORS.primary : COLORS.secondaryText} />
                     </TouchableOpacity>
                 </View>
+
+                {filtersVisible && (
+                    <View style={styles.filtersContainer}>
+                        <TouchableOpacity style={styles.filterChip} onPress={() => setCategoryModalVisible(true)}>
+                            <Text style={styles.filterChipText}>{getButtonText(CATEGORIES, selectedCategory) || 'Category'}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.filterChip} onPress={() => setColorModalVisible(true)}>
+                            <Text style={styles.filterChipText}>{getButtonText(COLORS_OPTIONS, selectedColor) || 'Color'}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.filterChip} onPress={() => setSeasonModalVisible(true)}>
+                            <Text style={styles.filterChipText}>{getButtonText(SEASONS, selectedSeason) || 'Season'}</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.clearButton} onPress={handleClearFilters}>
+                            <Text style={styles.clearButtonText}>Clear</Text>
+                        </TouchableOpacity>
+                    </View>
+                )}
+
+                {loading ? (
+                    <ActivityIndicator size="large" color={COLORS.primary} style={{ flex: 1 }} />
+                ) : (
+                    <FlatList
+                        data={filteredClothes}
+                        renderItem={renderItem}
+                        keyExtractor={(item, index) => item.id?.toString() || index.toString()}
+                        numColumns={2}
+                        style={styles.list}
+                        contentContainerStyle={{ paddingBottom: 80 }}
+                        ListEmptyComponent={
+                            <View style={styles.emptyContainer}>
+                                {isAnyFilterActive ? (
+                                    <>
+                                        <Text style={styles.emptyMessage}>No items match your filter.</Text>
+                                        <Text style={styles.emptySubMessage}>Try adjusting your search or filters.</Text>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Text style={styles.emptyMessage}>Your wardrobe is empty.</Text>
+                                        <Text style={styles.emptySubMessage}>Tap the '+' button to add new clothes.</Text>
+                                    </>
+                                )}
+                            </View>
+                        }
+                    />
+                )}
+
+                <TouchableOpacity style={styles.fab} onPress={handleAddPhoto}>
+                    <Ionicons name="add" size={32} color={COLORS.white} />
+                </TouchableOpacity>
                 
-                {/* 2. Liste (Kayar) */}
-                <FlatList
-                    data={clothes}
-                    renderItem={({ item }) => (
-                        <ClothingCard
-                            item={item}
-                            onDelete={() => handleDelete(item.id)}
-                            onEdit={() => handleEdit(item)}
-                        />
-                    )}
-                    keyExtractor={item => item.id}
-                    style={styles.list}
-                    contentContainerStyle={{ paddingBottom: 80 }} // FAB için
+                <ClothingDetailModal 
+                    visible={detailModalVisible}
+                    item={selectedItem}
+                    onClose={handleCloseDetailModal}
                 />
                 
-                <TouchableOpacity style={styles.fab} onPress={handleAddPhoto}>
-                    <Ionicons name="add" size={32} color={COLORS.primaryText} />
-                </TouchableOpacity>
+                <SelectionModal
+                    visible={isCategoryModalVisible}
+                    options={CATEGORIES}
+                    onClose={() => setCategoryModalVisible(false)}
+                    onSelect={handleSelectCategory}
+                    modalTitle="Select a Category"
+                />
+                <SelectionModal
+                    visible={isColorModalVisible}
+                    options={COLORS_OPTIONS}
+                    onClose={() => setColorModalVisible(false)}
+                    onSelect={handleSelectColor}
+                    modalTitle="Select a Color"
+                />
+                <SelectionModal
+                    visible={isSeasonModalVisible}
+                    options={SEASONS}
+                    onClose={() => setSeasonModalVisible(false)}
+                    onSelect={handleSelectSeason}
+                    modalTitle="Select a Season"
+                />
+
             </SafeAreaView>
         </LinearGradient>
     );
 };
 
-// --- STİLLER GÜNCELLENDİ ---
 const styles = StyleSheet.create({
     gradient: { flex: 1 },
     container: { flex: 1 },
-    searchContainer: {
+    header: {
         flexDirection: 'row',
-        paddingHorizontal: 10,
-        paddingBottom: 10, // Alt boşluk
-        // YENİ: Solid başlığın hemen altında başlaması için
-        paddingTop: 10, 
+        alignItems: 'center',
+        paddingHorizontal: 15,
+        paddingTop: 10,
+        paddingBottom: 5,
         backgroundColor: 'transparent',
-        borderBottomWidth: 1,
-        borderBottomColor: COLORS.secondary,
     },
-    searchInput: {
+    searchContainer: {
         flex: 1,
-        height: 40,
+        flexDirection: 'row',
+        alignItems: 'center',
         backgroundColor: COLORS.card,
-        borderRadius: 20,
+        borderRadius: 25,
+        height: 45,
         paddingHorizontal: 15,
         marginRight: 10,
+    },
+    searchIcon: { marginRight: 10 },
+    searchInput: {
+        flex: 1,
+        height: '100%',
         fontSize: 16,
         color: COLORS.textPrimary,
     },
     filterButton: {
-        width: 40,
-        height: 40,
+        width: 45,
+        height: 45,
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    list: { flex: 1 },
-    card: {
-        flexDirection: 'row',
         backgroundColor: COLORS.card,
-        marginHorizontal: 10,
-        marginTop: 10,
-        padding: 10,
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: COLORS.secondary,
+        borderRadius: 25,
+    },
+    filtersContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        paddingHorizontal: 15,
+        paddingBottom: 10,
         alignItems: 'center',
     },
-    cardImage: {
-        width: 60,
-        height: 60,
-        borderRadius: 8,
-        backgroundColor: COLORS.secondary,
+    filterChip: {
+        backgroundColor: COLORS.card,
+        borderRadius: 20,
+        paddingVertical: 8,
+        paddingHorizontal: 15,
+        marginRight: 8,
+        marginBottom: 8,
     },
-    cardInfo: {
-        flex: 1,
-        marginLeft: 15,
-    },
-    cardCategory: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: COLORS.textPrimary,
-    },
-    cardDetails: {
+    filterChipText: {
+        color: COLORS.primaryText,
         fontSize: 14,
-        color: COLORS.textSecondary,
     },
-    cardActions: { flexDirection: 'row' },
-    actionButton: {
-        padding: 5,
-        marginLeft: 10,
+    clearButton: {
+        backgroundColor: COLORS.danger,
+        borderRadius: 20,
+        paddingVertical: 8,
+        paddingHorizontal: 15,
+        marginBottom: 8,
+    },
+    clearButtonText: {
+        color: COLORS.white,
+        fontSize: 14,
+        fontWeight: 'bold',
+    },
+    list: {
+        flex: 1,
+        paddingHorizontal: 5,
     },
     fab: {
         position: 'absolute',
@@ -171,10 +321,26 @@ const styles = StyleSheet.create({
         width: 60,
         height: 60,
         borderRadius: 30,
-        backgroundColor: COLORS.primary, 
+        backgroundColor: COLORS.primary,
         justifyContent: 'center',
         alignItems: 'center',
         elevation: 8,
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginTop: '40%',
+    },
+    emptyMessage: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: COLORS.secondaryText,
+    },
+    emptySubMessage: {
+        fontSize: 14,
+        color: COLORS.gray,
+        marginTop: 8,
     },
 });
 

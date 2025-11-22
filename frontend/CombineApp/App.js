@@ -156,7 +156,7 @@ function RootNavigator() {
 
   return (
     <NavigationContainer>
-      {token ? <MainTabs /> : <AuthStack />}
+      {true ? <MainTabs /> : <AuthStack />}
     </NavigationContainer>
   );
 }

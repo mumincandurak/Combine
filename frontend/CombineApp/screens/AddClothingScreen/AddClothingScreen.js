@@ -6,70 +6,150 @@ import {
   TouchableOpacity, 
   Image, 
   TextInput, 
-  ScrollView 
+  ScrollView,
+  ActivityIndicator,
+  Alert 
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../colors';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
-// import { useHeaderHeight } from '@react-navigation/elements'; // <-- SİLİNDİ
+import SelectionModal from '../../components/SelectionModal';
+import { CATEGORIES, COLORS_OPTIONS, SEASONS } from '../../constants/options';
+import { uploadImageForBgRemoval, saveClothingItem } from '../../api/clothing';
 
 const AddClothingScreen = ({ navigation }) => {
   const [imageUri, setImageUri] = useState(null);
-  const [category, setCategory] = useState('');
-  const [color, setColor] = useState('');
-  const [season, setSeason] = useState('');
+  const [name, setName] = useState('');
+  const [category, setCategory] = useState(null);
+  const [color, setColor] = useState(null);
+  const [season, setSeason] = useState(null);
+  const [loading, setLoading] = useState(false);
 
-  // ... (pickImageGallery, pickImageCamera, handleSave fonksiyonları aynı)
+  const [isModalVisible, setModalVisible] = useState(false);
+  const [modalOptions, setModalOptions] = useState([]);
+  const [modalTitle, setModalTitle] = useState('');
+  const [currentSelection, setCurrentSelection] = useState('');
+
   const pickImageGallery = async () => {
+    if (loading) return;
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      alert('Galeri izni gerekiyor!');
+      Alert.alert('Permission Denied', 'Sorry, we need camera roll permissions to make this work!');
       return;
     }
     let result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images, // Expo Go için
-      allowsEditing: true, aspect: [1, 1], quality: 1,
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
     });
     if (!result.canceled) {
       setImageUri(result.assets[0].uri);
     }
   };
+
   const pickImageCamera = async () => {
+    if (loading) return;
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      alert('Kamera izni gerekiyor!');
+      Alert.alert('Permission Denied', 'Sorry, we need camera permissions to make this work!');
       return;
     }
     let result = await ImagePicker.launchCameraAsync({
-      allowsEditing: true, aspect: [1, 1], quality: 1,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 1,
     });
     if (!result.canceled) {
       setImageUri(result.assets[0].uri);
     }
   };
-  const handleSave = () => {
-    if (!imageUri || !category || !color || !season) {
-        alert('Lütfen tüm alanları doldurun ve resim seçin.');
-        return;
+
+  const openModal = (type) => {
+    if (loading) return;
+    setCurrentSelection(type);
+    if (type === 'category') {
+      setModalOptions(CATEGORIES);
+      setModalTitle('Select Category');
+    } else if (type === 'color') {
+      setModalOptions(COLORS_OPTIONS);
+      setModalTitle('Select Color');
+    } else if (type === 'season') {
+      setModalOptions(SEASONS);
+      setModalTitle('Select Season');
     }
-    console.log('Kıyafet Kaydedildi:', { imageUri, category, color, season });
-    navigation.goBack();
+    setModalVisible(true);
   };
 
-  // const headerHeight = useHeaderHeight(); // <-- SİLİNDİ
+  const handleSelect = (option) => {
+    if (currentSelection === 'category') {
+      setCategory(option);
+    } else if (currentSelection === 'color') {
+      setColor(option);
+    } else if (currentSelection === 'season') {
+      setSeason(option);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!imageUri || !name || !category || !color || !season) {
+        Alert.alert('Missing Information', 'Please fill out all fields and select an image.');
+        return;
+    }
+
+    setLoading(true);
+
+    try {
+      Alert.alert('Processing', 'Your image is being processed, please wait...');
+      const uploadResponse = await uploadImageForBgRemoval(imageUri);
+
+      if (!uploadResponse.success) {
+        throw new Error('Failed to process image background.');
+      }
+
+      const clothingData = {
+        name,
+        category: category.value,
+        color: color.value,
+        season: season.value,
+        imageUrl: uploadResponse.imageUrl,
+      };
+
+      const saveResponse = await saveClothingItem(clothingData);
+
+      if (!saveResponse.success) {
+        throw new Error('Failed to save the item.');
+      }
+
+      Alert.alert('Success!', 'Your item has been added to your wardrobe.', [
+        { text: 'OK', onPress: () => navigation.goBack() },
+      ]);
+
+    } catch (error) {
+      Alert.alert('Error', error.message || 'An unexpected error occurred.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const SelectionDisplay = ({ label, value, onPress, placeholder }) => (
+    <>
+      <Text style={styles.label}>{label}</Text>
+      <TouchableOpacity style={styles.input} onPress={onPress} disabled={loading}>
+        <Text style={value ? styles.inputText : styles.inputPlaceholderText}>
+            {value ? value.label : placeholder}
+        </Text>
+        <Ionicons name="chevron-down" size={20} color={COLORS.gray} />
+      </TouchableOpacity>
+    </>
+  );
 
   return (
-    <LinearGradient
-      colors={COLORS.gradient} 
-      style={styles.gradient}
-    >
+    <LinearGradient colors={COLORS.gradient} style={styles.gradient}>
       <SafeAreaView style={styles.container}>
-        <ScrollView
-          // contentContainerStyle={{ paddingTop: headerHeight }} // <-- SİLİNDİ
-        >
-          {/* 1. Fotoğraf Alanı */}
+        <ScrollView>
           <View style={styles.imagePickerContainer}>
             {imageUri ? (
               <Image source={{ uri: imageUri }} style={styles.imagePreview} />
@@ -81,40 +161,47 @@ const AddClothingScreen = ({ navigation }) => {
             )}
           </View>
           
-          {/* 2. Fotoğraf Seçme Butonları */}
           <View style={styles.buttonContainer}>
-            <TouchableOpacity style={styles.imageButton} onPress={pickImageCamera}>
+            <TouchableOpacity style={[styles.imageButton, loading && styles.disabledButton]} onPress={pickImageCamera} disabled={loading}>
               <Ionicons name="camera-outline" size={20} color={COLORS.primaryText} />
               <Text style={styles.imageButtonText}>Take Photo</Text>
             </TouchableOpacity>
-            <TouchableOpacity style={styles.imageButton} onPress={pickImageGallery}>
+            <TouchableOpacity style={[styles.imageButton, loading && styles.disabledButton]} onPress={pickImageGallery} disabled={loading}>
               <Ionicons name="images-outline" size={20} color={COLORS.primaryText} />
               <Text style={styles.imageButtonText}>From Gallery</Text>
             </TouchableOpacity>
           </View>
           
-          {/* 3. Bilgi Giriş Formu */}
           <View style={styles.formContainer}>
-            <Text style={styles.label}>Category</Text>
-            <TextInput style={styles.input} placeholder="e.g., Top, Bottom, Shoes" placeholderTextColor={COLORS.gray} value={category} onChangeText={setCategory} />
-            <Text style={styles.label}>Color</Text>
-            <TextInput style={styles.input} placeholder="e.g., Blue, White, Black" placeholderTextColor={COLORS.gray} value={color} onChangeText={setColor} />
-            <Text style={styles.label}>Season</Text>
-            <TextInput style={styles.input} placeholder="e.g., Summer, Winter, All" placeholderTextColor={COLORS.gray} value={season} onChangeText={setSeason} />
+            <Text style={styles.label}>Name</Text>
+            <TextInput style={styles.input} placeholder="e.g., Red Jacket, Blue Jeans" placeholderTextColor={COLORS.gray} value={name} onChangeText={setName} editable={!loading} />
+            
+            <SelectionDisplay label="Category" value={category} onPress={() => openModal('category')} placeholder="Select a category" />
+            <SelectionDisplay label="Color" value={color} onPress={() => openModal('color')} placeholder="Select a color" />
+            <SelectionDisplay label="Season" value={season} onPress={() => openModal('season')} placeholder="Select a season" />
           </View>
           
-          {/* 4. Kaydet Butonu */}
-          <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-            <Text style={styles.saveButtonText}>Save Item</Text>
+          <TouchableOpacity style={[styles.saveButton, loading && styles.disabledButton]} onPress={handleSave} disabled={loading}>
+            {loading ? (
+              <ActivityIndicator color={COLORS.primaryText} />
+            ) : (
+              <Text style={styles.saveButtonText}>Save Item</Text>
+            )}
           </TouchableOpacity>
           <View style={{ height: 30 }} />
         </ScrollView>
+        <SelectionModal 
+            visible={isModalVisible}
+            options={modalOptions}
+            onSelect={handleSelect}
+            onClose={() => setModalVisible(false)}
+            modalTitle={modalTitle}
+        />
       </SafeAreaView>
     </LinearGradient>
   );
 };
 
-// --- STİLLER GÜNCELLENDİ ---
 const styles = StyleSheet.create({
   gradient: { flex: 1 },
   container: { flex: 1 },
@@ -123,7 +210,6 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.card,
     justifyContent: 'center',
     alignItems: 'center',
-    // YENİ: Solid başlığın hemen altında başlaması için
     marginTop: 10,
     marginHorizontal: 10,
     borderRadius: 10,
@@ -146,7 +232,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingVertical: 15,
-    backgroundColor: 'transparent',
   },
   imageButton: {
     flexDirection: 'row',
@@ -173,10 +258,22 @@ const styles = StyleSheet.create({
     borderColor: COLORS.secondary,
     borderRadius: 8,
     padding: 12,
+    height: 50,
     fontSize: 16,
     marginBottom: 15,
     backgroundColor: COLORS.card,
     color: COLORS.textPrimary,
+    flexDirection: 'row', 
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  inputText: {
+    fontSize: 16,
+    color: COLORS.textPrimary,
+  },
+  inputPlaceholderText: {
+    fontSize: 16,
+    color: COLORS.gray,
   },
   saveButton: {
     backgroundColor: COLORS.primary, 
@@ -190,6 +287,10 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: 'bold',
   },
+  disabledButton: {
+    backgroundColor: COLORS.gray,
+  },
 });
 
 export default AddClothingScreen;
+
