@@ -6,26 +6,14 @@ import {
     Image,
     TouchableOpacity,
     ScrollView,
+    ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../colors';
 import { Ionicons } from '@expo/vector-icons';
-// useHeaderHeight'a artık gerek yok
+import { useAuth } from '../../context/AuthContext'; // AuthContext'i içeri aktar
 
-// Simülasyon verisi (Aynı)
-const userProfile = {
-    name: 'Elisa Yıldırım',
-    location: 'Istanbul, TR',
-    profileImageUrl: 'https://via.placeholder.com/150/FFFFFF/1B1229?text=User',
-    favoriteColors: [COLORS.primary, COLORS.secondary, '#d1c4e9'],
-    stylePreferences: ['Casual', 'Minimalist'],
-    importantDates: [
-        { id: 1, title: 'Doğum Günü', date: '2025-11-20' },
-        { id: 2, title: 'Proje Sunumu', date: '2025-12-15' },
-    ]
-};
-// Menü ve Renk bileşenleri (Aynı)
 const ProfileMenuItem = ({ title, iconName, onPress }) => (
     <TouchableOpacity style={styles.menuItem} onPress={onPress}>
         <View style={styles.menuItemContent}>
@@ -39,10 +27,21 @@ const ColorCircle = ({ color }) => (
     <View style={[styles.colorCircle, { backgroundColor: color }]} />
 );
 
-
 const ProfileScreen = ({ navigation }) => {
+    const { user } = useAuth(); // AuthContext'ten kullanıcı verisini al
     const onSettingsPress = () => navigation.navigate('Settings');
     const onStatsPress = () => navigation.navigate('Statistics');
+
+    // Kullanıcı verisi yükleniyorsa veya yoksa bekleme ekranı göster
+    if (!user) {
+        return (
+            <LinearGradient colors={COLORS.gradient} style={styles.gradient}>
+                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                    <ActivityIndicator size="large" color={COLORS.primary} />
+                </View>
+            </LinearGradient>
+        );
+    }
 
     return (
         <LinearGradient
@@ -53,11 +52,11 @@ const ProfileScreen = ({ navigation }) => {
                 <ScrollView>
                     <View style={styles.header}>
                         <Image
-                            source={{ uri: userProfile.profileImageUrl }}
+                            source={{ uri: user.profileImageUrl }}
                             style={styles.profileImage}
                         />
-                        <Text style={styles.profileName}>{userProfile.name}</Text>
-                        <Text style={styles.profileLocation}>{userProfile.location}</Text>
+                        <Text style={styles.profileName}>{user.name}</Text>
+                        <Text style={styles.profileLocation}>{user.location}</Text>
                     </View>
                     <View style={styles.menuContainer}>
                         <ProfileMenuItem
@@ -74,20 +73,20 @@ const ProfileScreen = ({ navigation }) => {
                     <View style={styles.infoContainer}>
                         <Text style={styles.infoTitle}>Favorite Colors</Text>
                         <View style={styles.colorContainer}>
-                            {userProfile.favoriteColors.map((color, index) => (
+                            {user.favoriteColors.map((color, index) => (
                                 <ColorCircle key={index} color={color} />
                             ))}
                         </View>
                         <Text style={styles.infoTitle}>Style Preferences</Text>
                         <View style={styles.styleContainer}>
-                            {userProfile.stylePreferences.map((style, index) => (
+                            {user.stylePreferences.map((style, index) => (
                                 <View key={index} style={styles.styleTag}>
                                     <Text style={styles.styleTagText}>{style}</Text>
                                 </View>
                             ))}
                         </View>
                         <Text style={styles.infoTitle}>Important Dates</Text>
-                        {userProfile.importantDates.map((date) => (
+                        {user.importantDates.map((date) => (
                             <View key={date.id} style={styles.dateItem}>
                                 <Text style={styles.dateTitle}>{date.title}</Text>
                                 <Text style={styles.dateText}>{date.date}</Text>
@@ -100,6 +99,7 @@ const ProfileScreen = ({ navigation }) => {
         </LinearGradient>
     );
 };
+
 
 // --- STİLLER GÜNCELLENDİ (VE TEMİZLENDİ) ---
 const styles = StyleSheet.create({

@@ -10,23 +10,21 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../colors';
-// import { useHeaderHeight } from '@react-navigation/elements'; // <-- SİLİNDİ
+import { useAuth } from '../../context/AuthContext'; // AuthContext'i içeri aktar
 
 const AVAILABLE_STYLES = ['Casual', 'Minimalist', 'Streetwear', 'Boho', 'Vintage', 'Formal', 'Sporty'];
 const AVAILABLE_COLORS = [
     COLORS.primary, COLORS.secondary, '#d1c4e9', '#FF6B6B',
     '#4ECDC4', '#F9E79F', '#34495E', '#E74C3C', '#2ECC71',
 ];
-const currentSelections = {
-    colors: [COLORS.primary, COLORS.secondary, '#d1c4e9'],
-    styles: ['Casual', 'Minimalist'],
-};
 
 const EditStyleScreen = ({ navigation }) => {
-    const [selectedColors, setSelectedColors] = useState(currentSelections.colors);
-    const [selectedStyles, setSelectedStyles] = useState(currentSelections.styles);
+    const { user, updateUser } = useAuth(); // Context'ten user ve updateUser'ı al
 
-    // ... (toggleColor, toggleStyle, handleSave fonksiyonları aynı)
+    // State'i context'teki kullanıcı verisiyle başlat
+    const [selectedColors, setSelectedColors] = useState(user.favoriteColors || []);
+    const [selectedStyles, setSelectedStyles] = useState(user.stylePreferences || []);
+
     const toggleColor = (color) => {
         const isSelected = selectedColors.includes(color);
         if (isSelected) {
@@ -39,6 +37,7 @@ const EditStyleScreen = ({ navigation }) => {
             }
         }
     };
+
     const toggleStyle = (style) => {
         const isSelected = selectedStyles.includes(style);
         if (isSelected) {
@@ -47,12 +46,16 @@ const EditStyleScreen = ({ navigation }) => {
             setSelectedStyles([...selectedStyles, style]);
         }
     };
+
     const handleSave = () => {
-        console.log('Yeni Stiller:', { selectedStyles, selectedColors });
+        // Değişiklikleri context üzerinden güncelle
+        updateUser({ 
+            favoriteColors: selectedColors, 
+            stylePreferences: selectedStyles 
+        });
+        // Bir önceki ekrana dön
         navigation.goBack();
     };
-    
-    // const headerHeight = useHeaderHeight(); // <-- SİLİNDİ
 
     return (
         <LinearGradient
@@ -60,9 +63,7 @@ const EditStyleScreen = ({ navigation }) => {
             style={styles.gradient}
         >
             <SafeAreaView style={styles.container}>
-                <ScrollView
-                    // contentContainerStyle={{ paddingTop: headerHeight }} // <-- SİLİNDİ
-                >
+                <ScrollView>
                     <View style={styles.section}>
                         <Text style={styles.title}>Favorite Colors (Select up to 3)</Text>
                         <View style={styles.gridContainer}>

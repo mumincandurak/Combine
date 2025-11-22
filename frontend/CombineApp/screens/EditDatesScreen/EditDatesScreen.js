@@ -12,22 +12,24 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../colors';
 import { Ionicons } from '@expo/vector-icons';
-// import { useHeaderHeight } from '@react-navigation/elements'; // <-- SİLİNDİ
-
-const initialDates = [
-    { id: '1', title: 'Doğum Günü', date: '2025-11-20' },
-    { id: '2', title: 'Proje Sunumu', date: '2025-12-15' },
-];
+import { useAuth } from '../../context/AuthContext'; // AuthContext'i içeri aktar
 
 const EditDatesScreen = ({ navigation }) => {
-    const [dates, setDates] = useState(initialDates);
+    const { user, updateUser } = useAuth(); // Context'ten user ve updateUser'ı al
+
+    // State'i context'teki kullanıcı verisiyle başlat
+    const [dates, setDates] = useState(user.importantDates || []);
     const [newTitle, setNewTitle] = useState('');
     const [newDate, setNewDate] = useState('');
 
-    // ... (handleAddDate, handleDeleteDate fonksiyonları aynı)
     const handleAddDate = () => {
         if (!newTitle || !newDate) {
-            Alert.alert('Eksik Bilgi', 'Lütfen hem başlık hem de tarih girin.');
+            Alert.alert('Missing Information', 'Please enter both a title and a date.');
+            return;
+        }
+        // YYYY-MM-DD formatını basitçe kontrol et
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
+            Alert.alert('Invalid Format', 'Please use YYYY-MM-DD format for the date.');
             return;
         }
         const newDateObject = { id: Math.random().toString(), title: newTitle, date: newDate };
@@ -35,10 +37,19 @@ const EditDatesScreen = ({ navigation }) => {
         setNewTitle('');
         setNewDate('');
     };
+
     const handleDeleteDate = (idToDelete) => {
-        Alert.alert('Tarihi Sil', 'Bu tarihi silmek istediğinizden emin misiniz?', [
-            { text: 'İptal', style: 'cancel' },
-            { text: 'Sil', style: 'destructive', onPress: () => setDates(dates.filter(date => date.id !== idToDelete)) }
+        Alert.alert('Delete Date', 'Are you sure you want to delete this date?', [
+            { text: 'Cancel', style: 'cancel' },
+            { text: 'Delete', style: 'destructive', onPress: () => setDates(dates.filter(date => date.id !== idToDelete)) }
+        ]);
+    };
+
+    const handleSave = () => {
+        // Değişiklikleri context üzerinden merkezi state'e kaydet
+        updateUser({ importantDates: dates });
+        Alert.alert('Success', 'Your important dates have been updated.', [
+            { text: 'OK', onPress: () => navigation.goBack() }
         ]);
     };
 
@@ -54,15 +65,12 @@ const EditDatesScreen = ({ navigation }) => {
         </View>
     );
 
-    // const headerHeight = useHeaderHeight(); // <-- SİLİNDİ
-
     return (
         <LinearGradient
             colors={COLORS.gradient} 
             style={styles.gradient}
         >
             <SafeAreaView style={styles.container}>
-                {/* 1. Yeni Tarih Ekleme Formu */}
                 <View style={styles.formContainer}>
                     <Text style={styles.formTitle}>Add New Date</Text>
                     <TextInput
@@ -80,32 +88,34 @@ const EditDatesScreen = ({ navigation }) => {
                         onChangeText={setNewDate}
                     />
                     <TouchableOpacity style={styles.addButton} onPress={handleAddDate}>
-                        <Text style={styles.addButtonText}>Add Date</Text>
+                        <Text style={styles.addButtonText}>Add Date to List</Text>
                     </TouchableOpacity>
                 </View>
                 
-                {/* 2. Mevcut Tarihlerin Listesi */}
                 <FlatList
                     data={dates}
                     renderItem={renderDateItem}
                     keyExtractor={item => item.id}
                     style={styles.list}
+                    ListFooterComponent={
+                        <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
+                            <Text style={styles.saveButtonText}>Save Changes</Text>
+                        </TouchableOpacity>
+                    }
                 />
             </SafeAreaView>
         </LinearGradient>
     );
 };
 
-// --- STİLLER GÜNCELLENDİ ---
 const styles = StyleSheet.create({
     gradient: { flex: 1 },
     container: { flex: 1 },
     formContainer: {
         paddingHorizontal: 20,
-        paddingBottom: 20, // Alt boşluk
-        // YENİ: Solid başlığın hemen altında başlaması için
+        paddingBottom: 20,
         paddingTop: 10, 
-        backgroundColor: COLORS.secondary, // Formu ayırmak için ikincil renk
+        backgroundColor: 'rgba(0,0,0,0.1)',
         borderBottomWidth: 1,
         borderBottomColor: COLORS.secondary,
     },
@@ -155,6 +165,19 @@ const styles = StyleSheet.create({
         color: COLORS.textSecondary,
     },
     deleteButton: { padding: 5 },
+    saveButton: {
+        backgroundColor: COLORS.primary,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: 50,
+        margin: 20,
+    },
+    saveButtonText: {
+        color: COLORS.primaryText,
+        fontSize: 18,
+        fontWeight: 'bold',
+    },
 });
 
 export default EditDatesScreen;

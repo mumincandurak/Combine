@@ -6,35 +6,53 @@ import {
     Image,
     TextInput,
     TouchableOpacity,
-    ScrollView
+    ScrollView,
+    Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../colors';
-// import { useHeaderHeight } from '@react-navigation/elements'; // <-- SİLİNDİ
-
-const currentUser = {
-    name: 'Elisa Yıldırım',
-    location: 'Istanbul, TR',
-    profileImageUrl: 'https://via.placeholder.com/150/FFFFFF/1B1229?text=User',
-};
+import * as ImagePicker from 'expo-image-picker';
+import { useAuth } from '../../context/AuthContext';
 
 const EditProfileScreen = ({ navigation }) => {
-    const [name, setName] = useState(currentUser.name);
-    const [location, setLocation] = useState(currentUser.location);
-    const [imageUri, setImageUri] = useState(currentUser.profileImageUrl);
+    const { user, updateUser } = useAuth();
+
+    const [name, setName] = useState(user.name);
+    const [location, setLocation] = useState(user.location);
+    const [imageUri, setImageUri] = useState(user.profileImageUrl);
 
     const handleSave = () => {
-        console.log('Değişiklikler Kaydedildi:', { name, location, imageUri });
-        navigation.goBack();
+        updateUser({
+            name,
+            location,
+            profileImageUrl: imageUri,
+        });
+        Alert.alert('Success', 'Your profile has been updated.', [
+            { text: 'OK', onPress: () => navigation.goBack() }
+        ]);
     };
 
-    const handleChangePhoto = () => {
-        console.log("Fotoğraf Değiştir tıklandı!");
-        setImageUri('https://via.placeholder.com/150/92c952/1B1229?text=New');
-    };
+    const handleChangePhoto = async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status !== 'granted') {
+            Alert.alert('Permission Denied', 'Sorry, we need camera roll permissions to make this work!');
+            return;
+        }
 
-    // const headerHeight = useHeaderHeight(); // <-- SİLİNDİ
+        let result = await ImagePicker.launchImageLibraryAsync({
+            mediaTypes: ImagePicker.MediaTypeOptions.Images,
+            allowsEditing: true,
+            aspect: [1, 1],
+            quality: 1,
+        });
+
+        if (!result.canceled) {
+            // Gerçek uygulamada bu resmi bir bulut depolama servisine yükleyip
+            // URL'i almanız gerekir. Şimdilik yerel URI'ı kullanıyoruz.
+            setImageUri(result.assets[0].uri);
+        }
+    };
 
     return (
         <LinearGradient
@@ -42,9 +60,7 @@ const EditProfileScreen = ({ navigation }) => {
             style={styles.gradient}
         >
             <SafeAreaView style={styles.container}>
-                <ScrollView
-                // contentContainerStyle={{ paddingTop: headerHeight }} // <-- SİLİNDİ
-                >
+                <ScrollView>
                     <View style={styles.imageContainer}>
                         <Image source={{ uri: imageUri }} style={styles.profileImage} />
                         <TouchableOpacity onPress={handleChangePhoto}>
@@ -79,15 +95,13 @@ const EditProfileScreen = ({ navigation }) => {
     );
 };
 
-// --- STİLLER GÜNCELLENDİ ---
 const styles = StyleSheet.create({
     gradient: { flex: 1 },
     container: { flex: 1 },
     imageContainer: {
         alignItems: 'center',
-        // paddingVertical: 30, // <-- ESKİ
-        paddingTop: 10, // YENİ: Başlık ile resim arası 10px (ProfileScreen gibi)
-        paddingBottom: 20, // Alt boşluk
+        paddingTop: 10,
+        paddingBottom: 20,
         backgroundColor: 'transparent',
     },
     profileImage: {
@@ -122,7 +136,7 @@ const styles = StyleSheet.create({
         borderColor: COLORS.secondary,
     },
     saveButton: {
-        backgroundColor: COLORS.primary, // GÜNCEL lila
+        backgroundColor: COLORS.primary,
         borderRadius: 10,
         justifyContent: 'center',
         alignItems: 'center',
@@ -131,7 +145,7 @@ const styles = StyleSheet.create({
         marginTop: 10,
     },
     saveButtonText: {
-        color: COLORS.primaryText, // GÜNCEL siyah yazı
+        color: COLORS.primaryText,
         fontSize: 18,
         fontWeight: 'bold',
     },
