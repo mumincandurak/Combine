@@ -74,45 +74,96 @@ function WardrobeNavigator() {
 function MainTabs() {
   return (
     <Tab.Navigator
-      screenOptions={{
-        tabBarActiveTintColor: COLORS.primaryText,
-        tabBarInactiveTintColor: COLORS.gray,
-        tabBarShowLabel: false,
-        tabBarStyle: {
-            backgroundColor: COLORS.primary,
-            borderTopWidth: 0,
-            elevation: 0,
-        },
-        headerShown: false, // Varsayılan olarak başlıkları gizle (Home için gerekli)
-      }}
-    >
-      <Tab.Screen
-        name="Home"
-        component={HomeScreen}
-        options={{
-          tabBarIcon: ({ color }) => ( <Ionicons name="home" size={24} color={color} /> ),
-        }}
-      />
-      <Tab.Screen
-        name="Wardrobe"
-        component={WardrobeNavigator}
-        options={{
-          tabBarIcon: ({ color }) => ( <Ionicons name="cut-outline" size={24} color={color} /> ),
-        }}
-      />
-      
-      {}
-      <Tab.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{
-          title: 'Profile',
-          headerShown: true, 
-          ...darkScreenOptions, 
-          tabBarIcon: ({ color }) => ( <Ionicons name="person-outline" size={24} color={color} /> ),
-        }}
-      />
-    </Tab.Navigator>
+            screenOptions={{
+                tabBarActiveTintColor: COLORS.primaryText,
+                tabBarInactiveTintColor: COLORS.gray,
+                tabBarShowLabel: false,
+
+                tabBarStyle: {
+                    backgroundColor: COLORS.primary,
+                    borderTopWidth: 0,
+                    elevation: 0,
+                    paddingTop: 0, // üst boşluğu kaldır
+                    paddingBottom: 4,
+                    height: 40,
+                    marginTop: 0,
+                },
+                tabBarItemStyle: {
+                    paddingTop: 0,
+                    paddingBottom: 0,
+                    margin: 0,
+                    alignItems: "center",
+                    justifyContent: "center",
+                },
+
+                headerShown: false, // Varsayılan olarak başlıkları gizle (Home için gerekli)
+            }}
+        >
+            <Tab.Screen
+                name="Home"
+                component={HomeScreen}
+                options={{
+                    tabBarIcon: ({ color }) => (
+                        <View
+                            style={{
+                                alignItems: "center",
+                                justifyContent: "center",
+                                marginTop: -80,
+                            }}
+                        >
+                            <Ionicons name="home" size={24} color={color} />
+                        </View>
+                    ),
+                }}
+            />
+            <Tab.Screen
+                name="Wardrobe"
+                component={WardrobeNavigator}
+                options={{
+                    tabBarIcon: ({ color }) => (
+                        <View
+                            style={{
+                                alignItems: "center",
+                                justifyContent: "center",
+                                marginTop: -80,
+                            }}
+                        >
+                            <Ionicons
+                                name="cut-outline"
+                                size={24}
+                                color={color}
+                            />
+                        </View>
+                    ),
+                }}
+            />
+
+            {}
+            <Tab.Screen
+                name="Profile"
+                component={ProfileScreen}
+                options={{
+                    title: "Profile",
+                    headerShown: true,
+                    ...darkScreenOptions,
+                    tabBarIcon: ({ color }) => (
+                        <View
+                            style={{
+                                alignItems: "center",
+                                justifyContent: "center",
+                                marginTop: -80,
+                            }}
+                        >
+                            <Ionicons
+                                name="person-outline"
+                                size={24}
+                                color={color}
+                            />
+                        </View>
+                    ),
+                }}
+            />
+        </Tab.Navigator>
   );
 }
 
