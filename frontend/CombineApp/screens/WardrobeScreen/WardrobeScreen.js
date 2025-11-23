@@ -21,19 +21,20 @@ import SelectionModal from '../../components/SelectionModal';
 import { CATEGORIES, COLORS_OPTIONS, SEASONS } from '../../constants/options';
 
 const WardrobeScreen = ({ navigation }) => {
-    // General State
-    const [clothes, setClothes] = useState([]);
-    const [loading, setLoading] = useState(true);
+    // --- STATE ---
+    const [clothes, setClothes] = useState([]);           // Tüm kıyafetlerin ham listesi
+    const [loading, setLoading] = useState(true);         // Yükleniyor mu?
     
-    // Search & Filter State
-    const [searchQuery, setSearchQuery] = useState('');
-    const [filteredClothes, setFilteredClothes] = useState([]);
-    const [filtersVisible, setFiltersVisible] = useState(false);
+    // Arama ve Filtreleme State'leri
+    const [searchQuery, setSearchQuery] = useState('');           // Arama kutusundaki metin
+    const [filteredClothes, setFilteredClothes] = useState([]);   // Ekranda gösterilen (filtrelenmiş) liste
+    const [filtersVisible, setFiltersVisible] = useState(false);  // Filtre butonları açık mı?
     
+    // Seçili Filtreler (null ise hepsi gösterilir)
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [selectedColor, setSelectedColor] = useState(null);
     const [selectedSeason, setSelectedSeason] = useState(null);
-    const [isAnyFilterActive, setIsAnyFilterActive] = useState(false);
+    const [isAnyFilterActive, setIsAnyFilterActive] = useState(false); // "Hiç sonuç yok" mesajını doğru göstermek için
 
     // Modal State
     const [detailModalVisible, setDetailModalVisible] = useState(false);
@@ -42,61 +43,70 @@ const WardrobeScreen = ({ navigation }) => {
     const [isColorModalVisible, setColorModalVisible] = useState(false);
     const [isSeasonModalVisible, setSeasonModalVisible] = useState(false);
 
-    // Fetching Data
+    // --- VERİ ÇEKME ---
     const fetchClothes = useCallback(async () => {
         setLoading(true);
         try {
+            // API'den tüm kıyafetleri çekiyoruz
             const response = await clothingApi.getClothingItems();
             if (response && Array.isArray(response.data)) {
-                setClothes(response.data);
-                setFilteredClothes(response.data);
+                setClothes(response.data);          // Ham veriyi sakla
+                setFilteredClothes(response.data);  // Başlangıçta filtrelenmiş veri de aynıdır
             } else {
-                Alert.alert("Error", "Could not fetch clothing items. Please try again.");
+                Alert.alert("Hata", "Kıyafetler yüklenemedi.");
                 setClothes([]);
             }
         } catch (error) {
-            console.error("Error fetching clothes:", error);
-            Alert.alert("Error", "An unexpected error occurred.");
+            console.error("Kıyafet çekme hatası:", error);
+            Alert.alert("Hata", "Beklenmedik bir hata oluştu.");
         } finally {
             setLoading(false);
         }
     }, []);
 
+    // Ekran her odaklandığında (Geri dönüldüğünde vs.) veriyi yenile
     useFocusEffect(
         useCallback(() => {
             fetchClothes();
         }, [fetchClothes])
     );
 
-    // Filtering Logic
+    // --- FİLTRELEME MANTIĞI (En Önemli Kısım) ---
+    // clothes, searchQuery veya filtrelerden herhangi biri değiştiğinde bu blok çalışır.
     useEffect(() => {
-        let result = clothes;
+        let result = clothes; // İşleme ham liste ile başla
 
+        // Filtre aktif mi kontrolü
         const anyFilterActive = searchQuery || selectedCategory || selectedColor || selectedSeason;
         setIsAnyFilterActive(anyFilterActive);
 
+        // 1. Adım: Arama metni varsa isme göre filtrele
         if (searchQuery) {
             result = result.filter(item =>
                 item.name && item.name.toLowerCase().includes(searchQuery.toLowerCase())
             );
         }
+        // 2. Adım: Kategori seçiliyse filtrele
         if (selectedCategory) {
             const categoryLabel = CATEGORIES.find(c => c.value === selectedCategory)?.label;
             result = result.filter(item => item.category === categoryLabel);
         }
+        // 3. Adım: Renk seçiliyse filtrele
         if (selectedColor) {
             const colorLabel = COLORS_OPTIONS.find(c => c.value === selectedColor)?.label;
             result = result.filter(item => item.color === colorLabel);
         }
+        // 4. Adım: Mevsim seçiliyse filtrele
         if (selectedSeason) {
             const seasonLabel = SEASONS.find(s => s.value === selectedSeason)?.label;
             result = result.filter(item => item.season === seasonLabel);
         }
 
+        // Sonucu ekrana yansıtılacak state'e ata
         setFilteredClothes(result);
     }, [clothes, searchQuery, selectedCategory, selectedColor, selectedSeason]);
 
-    // Handlers
+    // --- HANDLERS (Olay Yönetimi) ---
     const handleCardLongPress = (item) => {
         setSelectedItem(item);
         setDetailModalVisible(true);
@@ -108,6 +118,7 @@ const WardrobeScreen = ({ navigation }) => {
     };
     
     const handleClearFilters = () => {
+        // Tüm filtreleri sıfırla
         setSelectedCategory(null);
         setSelectedColor(null);
         setSelectedSeason(null);
@@ -129,7 +140,7 @@ const WardrobeScreen = ({ navigation }) => {
 
     const handleAddPhoto = () => navigation.navigate('AddClothing');
 
-    // Render Components
+    // --- RENDER YARDIMCILARI ---
     const renderItem = ({ item }) => (
         <ClothingCard 
             item={item}
@@ -150,7 +161,7 @@ const WardrobeScreen = ({ navigation }) => {
                         <Ionicons name="search" size={20} color={COLORS.gray} style={styles.searchIcon} />
                         <TextInput
                             style={styles.searchInput}
-                            placeholder="Search in your wardrobe"
+                            placeholder="Search in your wardrobe..."
                             placeholderTextColor={COLORS.gray}
                             value={searchQuery}
                             onChangeText={setSearchQuery}
@@ -192,13 +203,13 @@ const WardrobeScreen = ({ navigation }) => {
                             <View style={styles.emptyContainer}>
                                 {isAnyFilterActive ? (
                                     <>
-                                        <Text style={styles.emptyMessage}>No items match your filter.</Text>
-                                        <Text style={styles.emptySubMessage}>Try adjusting your search or filters.</Text>
+                                        <Text style={styles.emptyMessage}>Filtrelere uygun eşya bulunamadı.</Text>
+                                        <Text style={styles.emptySubMessage}>Aramayı veya filtreleri değiştirmeyi dene.</Text>
                                     </>
                                 ) : (
                                     <>
-                                        <Text style={styles.emptyMessage}>Your wardrobe is empty.</Text>
-                                        <Text style={styles.emptySubMessage}>Tap the '+' button to add new clothes.</Text>
+                                        <Text style={styles.emptyMessage}>Wardrobe is empty.</Text>
+                                        <Text style={styles.emptySubMessage}>Yeni kıyafet eklemek için '+' butonuna bas.</Text>
                                     </>
                                 )}
                             </View>
@@ -299,7 +310,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
     },
     clearButton: {
-        backgroundColor: COLORS.danger,
+        backgroundColor: '#E74C3C', // Kırmızı
         borderRadius: 20,
         paddingVertical: 8,
         paddingHorizontal: 15,
@@ -335,7 +346,7 @@ const styles = StyleSheet.create({
     emptyMessage: {
         fontSize: 18,
         fontWeight: 'bold',
-        color: COLORS.secondaryText,
+        color: COLORS.textSecondary,
     },
     emptySubMessage: {
         fontSize: 14,

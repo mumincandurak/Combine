@@ -1,17 +1,13 @@
 import React, { useState } from 'react';
 import {
-    View,
-    Text,
-    StyleSheet,
-    TouchableOpacity,
-    ScrollView,
-    Alert
+    View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../colors';
-import { useAuth } from '../../context/AuthContext'; // AuthContext'i içeri aktar
+import { useAuth } from '../../context/AuthContext';
 
+// Seçenek listeleri
 const AVAILABLE_STYLES = ['Casual', 'Minimalist', 'Streetwear', 'Boho', 'Vintage', 'Formal', 'Sporty'];
 const AVAILABLE_COLORS = [
     COLORS.primary, COLORS.secondary, '#d1c4e9', '#FF6B6B',
@@ -19,53 +15,56 @@ const AVAILABLE_COLORS = [
 ];
 
 const EditStyleScreen = ({ navigation }) => {
-    const { user, updateUser } = useAuth(); // Context'ten user ve updateUser'ı al
+    const { user, updateUser } = useAuth();
 
-    // State'i context'teki kullanıcı verisiyle başlat
+    // State'i kullanıcının mevcut tercihleriyle başlatıyoruz
     const [selectedColors, setSelectedColors] = useState(user.favoriteColors || []);
     const [selectedStyles, setSelectedStyles] = useState(user.stylePreferences || []);
 
+    // --- RENK SEÇİMİ (TOGGLE) ---
     const toggleColor = (color) => {
         const isSelected = selectedColors.includes(color);
         if (isSelected) {
+            // Zaten seçiliyse listeden çıkar
             setSelectedColors(selectedColors.filter(c => c !== color));
         } else {
+            // Seçili değilse ve limit (3) dolmadıysa ekle
             if (selectedColors.length < 3) {
                 setSelectedColors([...selectedColors, color]);
             } else {
-                Alert.alert("Max 3 Colors", "You can only select up to 3 favorite colors.");
+                Alert.alert("Maksimum 3 Renk", "En fazla 3 favori renk seçebilirsiniz.");
             }
         }
     };
 
+    // --- STİL SEÇİMİ (TOGGLE) ---
     const toggleStyle = (style) => {
         const isSelected = selectedStyles.includes(style);
         if (isSelected) {
+            // Seçiliyse çıkar
             setSelectedStyles(selectedStyles.filter(s => s !== style));
         } else {
+            // Değilse ekle
             setSelectedStyles([...selectedStyles, style]);
         }
     };
 
     const handleSave = () => {
-        // Değişiklikleri context üzerinden güncelle
+        // Global state'i güncelle
         updateUser({ 
             favoriteColors: selectedColors, 
             stylePreferences: selectedStyles 
         });
-        // Bir önceki ekrana dön
         navigation.goBack();
     };
 
     return (
-        <LinearGradient
-            colors={COLORS.gradient} 
-            style={styles.gradient}
-        >
+        <LinearGradient colors={COLORS.gradient} style={styles.gradient}>
             <SafeAreaView style={styles.container}>
                 <ScrollView>
+                    {/* Renk Seçimi Bölümü */}
                     <View style={styles.section}>
-                        <Text style={styles.title}>Favorite Colors (Select up to 3)</Text>
+                        <Text style={styles.title}>Favori Renkler (Maksimum 3)</Text>
                         <View style={styles.gridContainer}>
                             {AVAILABLE_COLORS.map((color) => {
                                 const isSelected = selectedColors.includes(color);
@@ -75,14 +74,17 @@ const EditStyleScreen = ({ navigation }) => {
                                         style={[styles.colorBox, { backgroundColor: color }]}
                                         onPress={() => toggleColor(color)}
                                     >
+                                        {/* Seçiliyse tik işareti koy */}
                                         {isSelected && <Text style={styles.checkMark}>✓</Text>}
                                     </TouchableOpacity>
                                 );
                             })}
                         </View>
                     </View>
+
+                    {/* Stil Seçimi Bölümü */}
                     <View style={styles.section}>
-                        <Text style={styles.title}>Style Preferences</Text>
+                        <Text style={styles.title}>Stil Tercihleri</Text>
                         <View style={styles.gridContainer}>
                             {AVAILABLE_STYLES.map((style) => {
                                 const isSelected = selectedStyles.includes(style);
@@ -100,10 +102,10 @@ const EditStyleScreen = ({ navigation }) => {
                             })}
                         </View>
                     </View>
+
                     <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                        <Text style={styles.saveButtonText}>Save Changes</Text>
+                        <Text style={styles.saveButtonText}>Değişiklikleri Kaydet</Text>
                     </TouchableOpacity>
-                    <View style={{ height: 30 }} />
                 </ScrollView>
             </SafeAreaView>
         </LinearGradient>

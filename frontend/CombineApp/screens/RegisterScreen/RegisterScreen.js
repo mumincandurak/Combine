@@ -13,63 +13,68 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../colors';
-import apiClient from '../../api/client';
+import apiClient from '../../api/client'; // API istekleri için
 
 const RegisterScreen = ({ navigation }) => {
+  // --- FORM STATE'LERİ ---
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // İşlem sırasında butonu kilitlemek için
 
+  // --- KAYIT OLMA MANTIĞI ---
   const handleRegister = async () => {
+    // 1. Şifreler eşleşiyor mu kontrolü
     if (password !== confirmPassword) {
-      Alert.alert("Passwords don't match!");
+      Alert.alert("Hata", "Şifreler eşleşmiyor!");
       return;
     }
     
+    // 2. Boş alan kontrolü
     if (!username || !email || !password) {
-      Alert.alert("Missing Fields", "Please fill all fields.");
+      Alert.alert("Eksik Bilgi", "Lütfen tüm alanları doldurun.");
       return;
     }
 
-    setLoading(true);
+    setLoading(true); // Yükleniyor başlat
     try {
+      // 3. Backend'e kayıt isteği gönder
       const response = await apiClient.post('/auth/register', {
         username,
         email,
         password,
       });
 
+      // 4. Başarılı ise Login ekranına yönlendir
       if (response.data) {
-        Alert.alert('Registration Successful!', 'Please log in.');
+        Alert.alert('Kayıt Başarılı!', 'Lütfen giriş yapın.');
         navigation.navigate('Login');
       }
     } catch (error) {
-      const errorMessage = error.response?.data?.message || 'An unexpected error occurred.';
-      Alert.alert('Registration Failed', errorMessage);
+      // Hata mesajını yakala ve kullanıcıya göster
+      const errorMessage = error.response?.data?.message || 'Beklenmedik bir hata oluştu.';
+      Alert.alert('Kayıt Başarısız', errorMessage);
     } finally {
-      setLoading(false);
+      setLoading(false); // Yükleniyor bitir
     }
   };
 
   return (
-    <LinearGradient
-      colors={COLORS.gradient}
-      style={styles.gradient}
-    >
+    <LinearGradient colors={COLORS.gradient} style={styles.gradient}>
       <SafeAreaView style={styles.container}>
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.container}
         >
           <View style={styles.innerContainer}>
-            <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Let's get you started!</Text>
+            <Text style={styles.title}>Hesap Oluştur</Text>
+            <Text style={styles.subtitle}>Hadi başlayalım!</Text>
 
+            {/* Form Alanları */}
             <TextInput
               style={styles.input}
-              placeholder="Username"
+              placeholder="Kullanıcı Adı"
               placeholderTextColor={COLORS.gray}
               value={username}
               onChangeText={setUsername}
@@ -78,7 +83,7 @@ const RegisterScreen = ({ navigation }) => {
             
             <TextInput
               style={styles.input}
-              placeholder="Email"
+              placeholder="E-posta"
               placeholderTextColor={COLORS.gray}
               value={email}
               onChangeText={setEmail}
@@ -88,7 +93,7 @@ const RegisterScreen = ({ navigation }) => {
 
             <TextInput
               style={styles.input}
-              placeholder="Password"
+              placeholder="Şifre"
               placeholderTextColor={COLORS.gray}
               value={password}
               onChangeText={setPassword}
@@ -97,29 +102,28 @@ const RegisterScreen = ({ navigation }) => {
             
             <TextInput
               style={styles.input}
-              placeholder="Confirm Password"
+              placeholder="Şifreyi Onayla"
               placeholderTextColor={COLORS.gray}
               value={confirmPassword}
               onChangeText={setConfirmPassword}
               secureTextEntry={true}
             />
 
+            {/* Kayıt Butonu (Loading durumunda dönen ikon gösterir) */}
             <TouchableOpacity style={styles.button} onPress={handleRegister} disabled={loading}>
               {loading ? (
                 <ActivityIndicator color={COLORS.primaryText} />
               ) : (
-                <Text style={styles.buttonText}>Sign Up</Text>
+                <Text style={styles.buttonText}>Kayıt Ol</Text>
               )}
             </TouchableOpacity>
 
+            {/* Giriş Yap Yönlendirmesi */}
             <View style={styles.loginLinkContainer}>
-              <Text style={styles.loginText}>Already have an account? </Text>
-              <Text 
-                style={styles.link} 
-                onPress={() => navigation.navigate('Login')}
-              >
-                Log In
-              </Text>
+              <Text style={styles.loginText}>Zaten hesabın var mı? </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+                <Text style={styles.link}>Giriş Yap</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </KeyboardAvoidingView>

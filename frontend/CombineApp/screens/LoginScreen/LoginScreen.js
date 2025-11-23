@@ -7,76 +7,80 @@ import {
   TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Alert // Giriş simülasyonu için
+  Alert 
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context'; // Eklendi
-import { LinearGradient } from 'expo-linear-gradient'; // Eklendi
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../colors';
 import { useAuth } from '../../context/AuthContext';
 
 const LoginScreen = ({ navigation }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  // --- STATE YÖNETİMİ ---
+  const [email, setEmail] = useState('');     // Kullanıcının girdiği e-posta
+  const [password, setPassword] = useState(''); // Kullanıcının girdiği şifre
 
-  const { login } = useAuth(); // login fonksiyonunu context'ten al
+  // Context'ten login fonksiyonunu alıyoruz
+  const { login } = useAuth(); 
+
+  // --- GİRİŞ MANTIĞI ---
   const handleLogin = async () => {
+    // 1. Context içindeki login fonksiyonunu çağır (API isteği orada yapılır)
     const success = await login(email, password);
+    
+    // 2. Eğer giriş başarısızsa kullanıcıya uyarı ver
     if (!success) {
       Alert.alert("Giriş Başarısız", "Lütfen bilgilerinizi kontrol edin.");
     }
-    // Başarılı olursa, App.js'teki RootNavigator otomatik olarak sizi ana ekrana yönlendirecektir.
+    // NOT: Eğer giriş başarılı olursa, App.js'teki 'token' state'i değişeceği için
+    // uygulama otomatik olarak Ana Sayfa'ya (MainTabs) geçiş yapacaktır.
+    // Bu yüzden burada navigation.navigate('Home') dememize gerek yok.
   };
 
   return (
-    <LinearGradient
-      colors={COLORS.gradient}
-      style={styles.gradient}
-    >
+    <LinearGradient colors={COLORS.gradient} style={styles.gradient}>
       <SafeAreaView style={styles.container}>
+        {/* Klavye açıldığında ekranı yukarı itmek için */}
         <KeyboardAvoidingView 
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
           style={styles.container}
         >
           <View style={styles.innerContainer}>
             <Text style={styles.title}>Combine</Text>
-            <Text style={styles.subtitle}>Welcome Back!</Text>
+            <Text style={styles.subtitle}>Tekrar Hoşgeldiniz!</Text>
 
-            {/* Mail Giriş Kutusu */}
+            {/* E-posta Giriş Alanı */}
             <TextInput
               style={styles.input}
-              placeholder="Email"
+              placeholder="E-posta"
               placeholderTextColor={COLORS.gray}
               value={email}
               onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
+              keyboardType="email-address" // Klavye tipini e-postaya uygun açar
+              autoCapitalize="none"        // Baş harfi otomatik büyütme (e-posta için önemlidir)
               autoCorrect={false}
             />
 
-            {/* Şifre Giriş Kutusu */}
+            {/* Şifre Giriş Alanı */}
             <TextInput
               style={styles.input}
-              placeholder="Password"
+              placeholder="Şifre"
               placeholderTextColor={COLORS.gray}
               value={password}
               onChangeText={setPassword}
-              secureTextEntry={true}
+              secureTextEntry={true} // Şifreyi gizle (***)
             />
 
-            {/* Giriş Yap Butonu */}
+            {/* Giriş Butonu */}
             <TouchableOpacity style={styles.button} onPress={handleLogin}>
-              <Text style={styles.buttonText}>Login</Text>
+              <Text style={styles.buttonText}>Giriş Yap</Text>
             </TouchableOpacity>
 
-            {/* Kayıt Ol Linki */}
+            {/* Kayıt Ol Yönlendirmesi */}
             <View style={styles.registerLinkContainer}>
-              <Text style={styles.registerText}>Don't have an account? </Text>
-              <Text 
-                style={styles.link} 
-                onPress={() => navigation.navigate('Register')}
-              >
-                Sign Up
-              </Text>
+              <Text style={styles.registerText}>Hesabın yok mu? </Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+                <Text style={styles.link}>Kayıt Ol</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </KeyboardAvoidingView>

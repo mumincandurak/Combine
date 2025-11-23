@@ -20,23 +20,26 @@ import { CATEGORIES, COLORS_OPTIONS, SEASONS } from '../../constants/options';
 import { uploadImageForBgRemoval, saveClothingItem } from '../../api/clothing';
 
 const AddClothingScreen = ({ navigation }) => {
-  const [imageUri, setImageUri] = useState(null);
-  const [name, setName] = useState('');
-  const [category, setCategory] = useState(null);
-  const [color, setColor] = useState(null);
-  const [season, setSeason] = useState(null);
-  const [loading, setLoading] = useState(false);
+  // --- FORM STATE'LERİ ---
+  const [imageUri, setImageUri] = useState(null);   // Seçilen resmin yolu
+  const [name, setName] = useState('');             // Kıyafet ismi
+  const [category, setCategory] = useState(null);   // Seçilen kategori objesi
+  const [color, setColor] = useState(null);         // Seçilen renk objesi
+  const [season, setSeason] = useState(null);       // Seçilen mevsim objesi
+  const [loading, setLoading] = useState(false);    // Kaydetme işlemi sürüyor mu?
 
+  // Modal kontrolü
   const [isModalVisible, setModalVisible] = useState(false);
   const [modalOptions, setModalOptions] = useState([]);
   const [modalTitle, setModalTitle] = useState('');
   const [currentSelection, setCurrentSelection] = useState('');
 
+  // --- GALERİDEN RESİM SEÇME ---
   const pickImageGallery = async () => {
     if (loading) return;
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Sorry, we need camera roll permissions to make this work!');
+      Alert.alert('İzin Reddedildi', 'Galeriye erişim izni gerekiyor.');
       return;
     }
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -50,11 +53,12 @@ const AddClothingScreen = ({ navigation }) => {
     }
   };
 
+  // --- KAMERA İLE RESİM ÇEKME ---
   const pickImageCamera = async () => {
     if (loading) return;
     const { status } = await ImagePicker.requestCameraPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permission Denied', 'Sorry, we need camera permissions to make this work!');
+      Alert.alert('İzin Reddedildi', 'Kamera izni gerekiyor.');
       return;
     }
     let result = await ImagePicker.launchCameraAsync({
@@ -67,6 +71,7 @@ const AddClothingScreen = ({ navigation }) => {
     }
   };
 
+  // --- MODAL YÖNETİMİ ---
   const openModal = (type) => {
     if (loading) return;
     setCurrentSelection(type);
@@ -93,22 +98,25 @@ const AddClothingScreen = ({ navigation }) => {
     }
   };
 
+  // --- KAYDETME İŞLEMİ ---
   const handleSave = async () => {
     if (!imageUri || !name || !category || !color || !season) {
-        Alert.alert('Missing Information', 'Please fill out all fields and select an image.');
+        Alert.alert('Eksik Bilgi', 'Lütfen tüm alanları doldurun ve bir resim seçin.');
         return;
     }
 
     setLoading(true);
 
     try {
-      Alert.alert('Processing', 'Your image is being processed, please wait...');
+      Alert.alert('İşleniyor', 'Resminiz işleniyor, lütfen bekleyin...');
+      
+      // 1. Arka plan temizleme simülasyonu
       const uploadResponse = await uploadImageForBgRemoval(imageUri);
-
       if (!uploadResponse.success) {
-        throw new Error('Failed to process image background.');
+        throw new Error('Arka plan silme başarısız oldu.');
       }
 
+      // 2. Veri paketini hazırlama
       const clothingData = {
         name,
         category: category.value,
@@ -117,18 +125,18 @@ const AddClothingScreen = ({ navigation }) => {
         imageUrl: uploadResponse.imageUrl,
       };
 
+      // 3. Veritabanına kaydetme
       const saveResponse = await saveClothingItem(clothingData);
-
       if (!saveResponse.success) {
-        throw new Error('Failed to save the item.');
+        throw new Error('Kaydetme başarısız oldu.');
       }
 
-      Alert.alert('Success!', 'Your item has been added to your wardrobe.', [
-        { text: 'OK', onPress: () => navigation.goBack() },
+      Alert.alert('Başarılı!', 'Kıyafet gardırobuna eklendi.', [
+        { text: 'Tamam', onPress: () => navigation.goBack() },
       ]);
 
     } catch (error) {
-      Alert.alert('Error', error.message || 'An unexpected error occurred.');
+      Alert.alert('Hata', error.message || 'Beklenmedik bir hata oluştu.');
     } finally {
       setLoading(false);
     }
@@ -293,4 +301,3 @@ const styles = StyleSheet.create({
 });
 
 export default AddClothingScreen;
-

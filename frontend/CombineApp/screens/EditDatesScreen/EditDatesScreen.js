@@ -1,64 +1,75 @@
 import React, { useState } from 'react';
 import {
-    View,
-    Text,
-    StyleSheet,
-    TouchableOpacity,
-    FlatList,
-    Alert,
-    TextInput
+    View, Text, StyleSheet, TouchableOpacity, FlatList, Alert, TextInput
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../colors';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../../context/AuthContext'; // AuthContext'i içeri aktar
+import { useAuth } from '../../context/AuthContext';
 
 const EditDatesScreen = ({ navigation }) => {
-    const { user, updateUser } = useAuth(); // Context'ten user ve updateUser'ı al
+    const { user, updateUser } = useAuth();
 
-    // State'i context'teki kullanıcı verisiyle başlat
+    // Mevcut tarihleri state'e alıyoruz
     const [dates, setDates] = useState(user.importantDates || []);
+    
+    // Yeni eklenecek tarih için form state'leri
     const [newTitle, setNewTitle] = useState('');
     const [newDate, setNewDate] = useState('');
 
+    // --- YENİ TARİH EKLEME ---
     const handleAddDate = () => {
+        // Validasyonlar
         if (!newTitle || !newDate) {
-            Alert.alert('Missing Information', 'Please enter both a title and a date.');
+            Alert.alert('Eksik Bilgi', 'Lütfen başlık ve tarih girin.');
             return;
         }
-        // YYYY-MM-DD formatını basitçe kontrol et
+        // Basit tarih formatı kontrolü (YYYY-MM-DD)
         if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
-            Alert.alert('Invalid Format', 'Please use YYYY-MM-DD format for the date.');
+            Alert.alert('Geçersiz Format', 'Lütfen tarihi YYYY-MM-DD formatında girin.');
             return;
         }
+
+        // Yeni objeyi oluştur (ID olarak rastgele sayı kullanıyoruz şimdilik)
         const newDateObject = { id: Math.random().toString(), title: newTitle, date: newDate };
+        
+        // Listeye ekle ve inputları temizle
         setDates([...dates, newDateObject]);
         setNewTitle('');
         setNewDate('');
     };
 
+    // --- TARİH SİLME ---
     const handleDeleteDate = (idToDelete) => {
-        Alert.alert('Delete Date', 'Are you sure you want to delete this date?', [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Delete', style: 'destructive', onPress: () => setDates(dates.filter(date => date.id !== idToDelete)) }
+        Alert.alert('Sil', 'Bu tarihi silmek istediğinize emin misiniz?', [
+            { text: 'İptal', style: 'cancel' },
+            { 
+                text: 'Sil', 
+                style: 'destructive', 
+                // ID'si eşleşmeyenleri tutarak filtreleme yapıyoruz (yani eşleşeni atıyoruz)
+                onPress: () => setDates(dates.filter(date => date.id !== idToDelete)) 
+            }
         ]);
     };
 
+    // --- KAYDETME ---
     const handleSave = () => {
-        // Değişiklikleri context üzerinden merkezi state'e kaydet
+        // Güncellenmiş listeyi Context'e gönder
         updateUser({ importantDates: dates });
-        Alert.alert('Success', 'Your important dates have been updated.', [
-            { text: 'OK', onPress: () => navigation.goBack() }
+        Alert.alert('Başarılı', 'Önemli tarihler güncellendi.', [
+            { text: 'Tamam', onPress: () => navigation.goBack() }
         ]);
     };
 
+    // Liste Elemanı Görünümü
     const renderDateItem = ({ item }) => (
         <View style={styles.dateItem}>
             <View>
                 <Text style={styles.dateTitle}>{item.title}</Text>
                 <Text style={styles.dateText}>{item.date}</Text>
             </View>
+            {/* Çöp Kutusu İkonu */}
             <TouchableOpacity style={styles.deleteButton} onPress={() => handleDeleteDate(item.id)}>
                 <Ionicons name="trash-bin-outline" size={20} color={'#E74C3C'} />
             </TouchableOpacity>
@@ -66,40 +77,40 @@ const EditDatesScreen = ({ navigation }) => {
     );
 
     return (
-        <LinearGradient
-            colors={COLORS.gradient} 
-            style={styles.gradient}
-        >
+        <LinearGradient colors={COLORS.gradient} style={styles.gradient}>
             <SafeAreaView style={styles.container}>
+                {/* Ekleme Formu */}
                 <View style={styles.formContainer}>
-                    <Text style={styles.formTitle}>Add New Date</Text>
+                    <Text style={styles.formTitle}>Yeni Tarih Ekle</Text>
                     <TextInput
                         style={styles.input}
-                        placeholder="Title (e.g., Birthday)"
+                        placeholder="Başlık (örn: Doğum Günü)"
                         placeholderTextColor={COLORS.gray}
                         value={newTitle}
                         onChangeText={setNewTitle}
                     />
                     <TextInput
                         style={styles.input}
-                        placeholder="Date (YYYY-MM-DD)"
+                        placeholder="Tarih (YYYY-MM-DD)"
                         placeholderTextColor={COLORS.gray}
                         value={newDate}
                         onChangeText={setNewDate}
                     />
                     <TouchableOpacity style={styles.addButton} onPress={handleAddDate}>
-                        <Text style={styles.addButtonText}>Add Date to List</Text>
+                        <Text style={styles.addButtonText}>Listeye Ekle</Text>
                     </TouchableOpacity>
                 </View>
                 
+                {/* Tarih Listesi */}
                 <FlatList
                     data={dates}
                     renderItem={renderDateItem}
                     keyExtractor={item => item.id}
                     style={styles.list}
+                    // Listenin en altına Kaydet butonu koyuyoruz
                     ListFooterComponent={
                         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                            <Text style={styles.saveButtonText}>Save Changes</Text>
+                            <Text style={styles.saveButtonText}>Değişiklikleri Kaydet</Text>
                         </TouchableOpacity>
                     }
                 />

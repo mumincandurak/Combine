@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { View, ActivityIndicator } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { View, ActivityIndicator } from 'react-native';
 import { COLORS } from './colors';
 
 // Ekranlar
@@ -20,40 +20,26 @@ import EditDatesScreen from './screens/EditDatesScreen/EditDatesScreen';
 import StatisticsScreen from './screens/StatisticsScreen/StatisticsScreen';
 import AddClothingScreen from './screens/AddClothingScreen/AddClothingScreen';
 
-// Navigatörler
-const Stack = createStackNavigator();
+const Stack = createStackNavigator(); // Ana Stack (Global sayfalar için)
 const Tab = createBottomTabNavigator();
-const ProfileStack = createStackNavigator();
 const WardrobeStack = createStackNavigator();
 
-// --- BAŞLIK STİLLERİ GÜNCELLENDİ (SOLID/DÜZ RENK) ---
+// --- BAŞLIK AYARLARI ---
 const darkScreenOptions = {
-    // headerTransparent: true, // <-- KAPATILDI
-
     headerStyle: {
-        // YENİ: Başlık arka planı, gradient'in başlangıç rengiyle aynı
-        backgroundColor: COLORS.gradient[0], // ('#090040')
+        backgroundColor: COLORS.gradient[0], // Koyu lacivert
         shadowOpacity: 0,
         elevation: 0,
-        borderBottomWidth: 0, // Çizgi yok (gradient ile bütünleşsin)
-        height: 56, // <-- Küçültmek için burayı değiştir (örnek: 56)
+        borderBottomWidth: 0,
     },
-    headerTintColor: COLORS.textPrimary, // Başlık yazısı (Beyaz)
+    headerTintColor: COLORS.textPrimary,
     headerTitleStyle: {
         fontWeight: "bold",
-        fontSize: 22,// 18 önceki değer
-    },
-    headerTitleContainerStyle: {
-        height: 56, // headerStyle.height ile eşleştir
-        justifyContent: "center",
+        fontSize: 22,
     },
     headerTitleAlign: "center",
-
-    //headerBackTitleVisible: false, // Android/iOS'da metin kaldırır
-    headerLeftContainerStyle: {
-        paddingLeft: 0, // sola uzaklık
-        paddingVertical: 27, // dikey konum için ayar (gerekirse değiştir)
-    },
+    headerLeftContainerStyle: { paddingLeft: 10 },
+    headerRightContainerStyle: { paddingRight: 10 },
 };
 
 function AuthStack() {
@@ -65,21 +51,7 @@ function AuthStack() {
   );
 }
 
-// Profile ve alt ekranları
-function ProfileNavigator() {
-  return (
-    <ProfileStack.Navigator screenOptions={darkScreenOptions}>
-      <ProfileStack.Screen name="ProfileMain" component={ProfileScreen} options={{ title: 'Profile' }} />
-      <ProfileStack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
-      <ProfileStack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: 'Edit Profile' }} />
-      <ProfileStack.Screen name="EditStyle" component={EditStyleScreen} options={{ title: 'Styles & Colors' }} />
-      <ProfileStack.Screen name="EditDates" component={EditDatesScreen} options={{ title: 'Important Dates' }} />
-      <ProfileStack.Screen name="Statistics" component={StatisticsScreen} options={{ title: 'Statistics' }} />
-    </ProfileStack.Navigator>
-  );
-}
-
-// Wardrobe ve alt ekranı
+// Gardırop Stack'i (Başlığı var)
 function WardrobeNavigator() {
   return (
     <WardrobeStack.Navigator screenOptions={darkScreenOptions}>
@@ -89,27 +61,26 @@ function WardrobeNavigator() {
   );
 }
 
-// Alt Sekme Çubuğu (Aynı, lila/siyah)
+// --- ANA SEKMELER (DÜZELTİLDİ) ---
 function MainTabs() {
   return (
     <Tab.Navigator
       screenOptions={{
-        tabBarActiveTintColor: COLORS.primaryText, // Siyah
-        tabBarInactiveTintColor: COLORS.gray,       // Gri
-        tabBarShowLabel: false, 
+        tabBarActiveTintColor: COLORS.primaryText,
+        tabBarInactiveTintColor: COLORS.gray,
+        tabBarShowLabel: false,
         tabBarStyle: {
-          backgroundColor: COLORS.primary, // Açık lila arka plan
-          borderTopWidth: 0,
-          elevation: 0,
-          //height: 60, önceki hali
+            backgroundColor: COLORS.primary,
+            borderTopWidth: 0,
+            elevation: 0,
         },
+        headerShown: false, // Varsayılan olarak başlıkları gizle (Home için gerekli)
       }}
     >
       <Tab.Screen
         name="Home"
         component={HomeScreen}
         options={{
-          headerShown: false, 
           tabBarIcon: ({ color }) => ( <Ionicons name="home" size={24} color={color} /> ),
         }}
       />
@@ -117,19 +88,43 @@ function MainTabs() {
         name="Wardrobe"
         component={WardrobeNavigator}
         options={{
-          headerShown: false, 
           tabBarIcon: ({ color }) => ( <Ionicons name="cut-outline" size={24} color={color} /> ),
         }}
       />
+      
+      {}
       <Tab.Screen
         name="Profile"
-        component={ProfileNavigator}
+        component={ProfileScreen}
         options={{
-          headerShown: false, 
+          title: 'Profile',
+          headerShown: true, 
+          ...darkScreenOptions, 
           tabBarIcon: ({ color }) => ( <Ionicons name="person-outline" size={24} color={color} /> ),
         }}
       />
     </Tab.Navigator>
+  );
+}
+
+// --- APP STACK (GLOBAL YAPI) ---
+function AppStack() {
+  return (
+    <Stack.Navigator screenOptions={darkScreenOptions}>
+      {/* 1. Ana Sekmeler (Header kapalı çünkü içerdekiler halledecek) */}
+      <Stack.Screen 
+        name="MainTabs" 
+        component={MainTabs} 
+        options={{ headerShown: false }} 
+      />
+      
+      {/* 2. Global Sayfalar (Geri butonu çalışsın diye burada) */}
+      <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
+      <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: 'Edit Profile' }} />
+      <Stack.Screen name="EditStyle" component={EditStyleScreen} options={{ title: 'Style & Colors' }} />
+      <Stack.Screen name="EditDates" component={EditDatesScreen} options={{ title: 'Important Dates' }} />
+      <Stack.Screen name="Statistics" component={StatisticsScreen} options={{ title: 'Statistics' }} />
+    </Stack.Navigator>
   );
 }
 
@@ -142,21 +137,21 @@ function RootNavigator() {
       await restoreToken();
       setLoading(false);
     };
-
     bootstrapAsync();
   }, [restoreToken]);
 
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
   }
 
   return (
+    // login ekranı için true yerine token yazın
     <NavigationContainer>
-      {true ? <MainTabs /> : <AuthStack />}
+      {true ? <AppStack /> : <AuthStack />}
     </NavigationContainer>
   );
 }

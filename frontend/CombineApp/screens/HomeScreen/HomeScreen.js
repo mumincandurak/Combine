@@ -4,7 +4,6 @@ import {
     Text,
     StyleSheet,
     ScrollView,
-    Image,
     TouchableOpacity,
     ActivityIndicator,
     Alert
@@ -18,15 +17,15 @@ import { useAuth } from '../../context/AuthContext';
 import { getWeatherByCoords } from '../../api/weather';
 import { getOutfitSuggestion, likeOutfit, dislikeOutfit } from '../../api/outfits';
 import ClothingCard from '../../components/ClothingCard';
-import ClothingDetailModal from '../../components/ClothingDetailModal'; // İthal et
+import ClothingDetailModal from '../../components/ClothingDetailModal';
 
-
+// --- HAVA DURUMU KARTI BİLEŞENİ ---
 const WeatherCard = ({ weather }) => {
     if (!weather) {
         return (
             <View style={styles.weatherCard}>
                 <ActivityIndicator color={COLORS.textPrimary} />
-                <Text style={styles.weatherLoadingText}>Fetching weather...</Text>
+                <Text style={styles.weatherLoadingText}>Hava durumu alınıyor...</Text>
             </View>
         );
     }
@@ -45,11 +44,14 @@ const WeatherCard = ({ weather }) => {
 
 const HomeScreen = ({ navigation }) => {
     const { user } = useAuth();
+
+    // --- STATE TANIMLAMALARI ---
     const [weather, setWeather] = useState(null);
     const [outfit, setOutfit] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [processingAction, setProcessingAction] = useState(false);
 
-    // Modal state ve handler'ları
+    // Modal kontrolü
     const [detailModalVisible, setDetailModalVisible] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
 
@@ -63,23 +65,21 @@ const HomeScreen = ({ navigation }) => {
         setSelectedItem(null);
     };
 
-    const handleLike = async () => {
-        if (!outfit) return;
-        console.log('Outfit Liked:', outfit.id);
-        // TODO: API'ye beğenme isteği gönderilecek.
-        // await likeOutfit(outfit.id); 
-        // Beğenme işleminden sonra yeni bir kombin getir:
-        fetchAllData();
+    // --- AYARLARA GİTME FONKSİYONU ---
+    const handleGoToSettings = () => {
+        navigation.navigate('Settings');
     };
 
+    // --- VERİ ÇEKME FONKSİYONU ---
     const fetchAllData = useCallback(async () => {
         if (!user) return;
 
         try {
             setLoading(true);
+
             let { status } = await Location.requestForegroundPermissionsAsync();
             if (status !== 'granted') {
-                Alert.alert('Permission Denied', 'Please grant location permission for weather and suggestions.');
+                Alert.alert('İzin Reddedildi', 'Hava durumu ve öneriler için konum izni gerekli.');
                 setLoading(false);
                 return;
             }
@@ -96,47 +96,67 @@ const HomeScreen = ({ navigation }) => {
                 if (outfitResponse.success) {
                     setOutfit(outfitResponse.data);
                 } else {
-                    Alert.alert('Suggestion Error', 'Could not fetch an outfit suggestion.');
+                    Alert.alert('Hata', 'Kombin önerisi alınamadı.');
                 }
             } else {
-                Alert.alert('Weather Error', 'Could not fetch weather data.');
+                Alert.alert('Hata', 'Hava durumu bilgisi alınamadı.');
             }
         } catch (error) {
-            console.error("Failed to fetch data:", error);
-            Alert.alert('Error', 'An unexpected error occurred.');
+            console.error("Veri çekme hatası:", error);
+            Alert.alert('Hata', 'Beklenmedik bir sorun oluştu.');
         } finally {
             setLoading(false);
         }
-    }, [user]); // user değiştiğinde fonksiyon yeniden oluşturulur.
+    }, [user]);
 
+    // --- LIKE İŞLEVİ ---
+    const handleLike = async () => {
+        if (!outfit || loading || processingAction) return;
+        try {
+            setProcessingAction(true);
+            await likeOutfit(outfit);
+            console.log('Kombin Beğenildi:', outfit.id);
+            Alert.alert("Beğenildi!", "Bu tarzı tercihlerine kaydettik.");
+        } catch (error) {
+            console.error("Beğeni hatası:", error);
+            Alert.alert("Hata", "İşlem gerçekleştirilemedi.");
+        } finally {
+            setProcessingAction(false);
+        }
+    };
+
+    // --- DISLIKE İŞLEVİ ---
     const handleDislike = async () => {
-        if (!outfit) return;
-        console.log('Outfit Disliked:', outfit.id);
-        // TODO: API'ye beğenmeme isteği gönderilecek.
-        // await dislikeOutfit(outfit.id);
-        // Beğenmeme işleminden sonra yeni bir kombin getir:
-        fetchAllData();
+        if (!outfit || loading || processingAction) return;
+        try {
+            setProcessingAction(true);
+            await dislikeOutfit(outfit);
+            console.log('Kombin Beğenilmedi:', outfit.id);
+            Alert.alert("Not Edildi", "Bu tarz kombinleri daha az göstereceğiz.");
+        } catch (error) {
+            console.error("Dislike hatası:", error);
+            Alert.alert("Hata", "İşlem gerçekleştirilemedi.");
+        } finally {
+            setProcessingAction(false);
+        }
     };
 
     useEffect(() => {
-        // Bileşen ilk yüklendiğinde ve fetchAllData fonksiyonu (yani user) değiştiğinde verileri çek.
         if (user) {
             fetchAllData();
         }
     }, [user, fetchAllData]);
 
     return (
-        <LinearGradient
-            colors={COLORS.gradient}
-            style={styles.gradient}
-        >
+        <LinearGradient colors={COLORS.gradient} style={styles.gradient}>
             <SafeAreaView style={styles.container}>
                 <ScrollView>
+                    {/* ÜST BAŞLIK VE AYARLAR BUTONU */}
                     <View style={styles.header}>
-                        <Text style={styles.greeting}>Good Morning, {user?.name.split(' ')[0]}</Text>
-                        <TouchableOpacity
-                            onPress={() => navigation.navigate('Settings')}
-                        >
+                        <Text style={styles.greeting}>Günaydın, {user?.name.split(' ')[0]}</Text>
+
+                        {/* DÜZELTİLEN BUTON: onPress fonksiyonu güncellendi */}
+                        <TouchableOpacity onPress={handleGoToSettings}>
                             <Ionicons name="settings-outline" size={24} color={COLORS.textPrimary} />
                         </TouchableOpacity>
                     </View>
@@ -144,14 +164,16 @@ const HomeScreen = ({ navigation }) => {
                     <WeatherCard weather={weather} />
 
                     <View style={styles.suggestionHeader}>
-                        <Text style={styles.sectionTitle}>Today's Outfit Suggestion</Text>
+                        <Text style={styles.sectionTitle}>Günün Kombin Önerisi</Text>
                     </View>
 
                     <View style={styles.gridContainer}>
                         {loading || !outfit ? (
                             <View style={styles.loadingContainer}>
                                 <ActivityIndicator size="large" color={COLORS.primary} />
-                                <Text style={styles.loadingText}>Finding the perfect outfit for you...</Text>
+                                <Text style={styles.loadingText}>
+                                    {loading ? "Tarzın oluşturuluyor..." : "Mükemmel kombin aranıyor..."}
+                                </Text>
                             </View>
                         ) : (
                             <View style={styles.grid}>
@@ -166,18 +188,34 @@ const HomeScreen = ({ navigation }) => {
                             </View>
                         )}
                     </View>
+
                     <View style={styles.actionButtonsContainer}>
-                        <TouchableOpacity style={styles.actionButton} onPress={handleLike}>
-                            <Ionicons name="thumbs-up-outline" size={24} color={COLORS.primary} />
+                        <TouchableOpacity
+                            style={[styles.actionButton, (loading || processingAction) && styles.disabledButton]}
+                            onPress={handleLike}
+                            disabled={loading || processingAction}
+                        >
+                            <Ionicons name="thumbs-up-outline" size={24} color={(loading || processingAction) ? COLORS.gray : COLORS.primary} />
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.actionButton} onPress={fetchAllData}>
-                            <Ionicons name="refresh-outline" size={24} color={COLORS.primary} />
+
+                        <TouchableOpacity
+                            style={[styles.actionButton, (loading || processingAction) && styles.disabledButton]}
+                            onPress={fetchAllData}
+                            disabled={loading || processingAction}
+                        >
+                            <Ionicons name="refresh-outline" size={24} color={(loading || processingAction) ? COLORS.gray : COLORS.primary} />
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.actionButton} onPress={handleDislike}>
-                            <Ionicons name="thumbs-down-outline" size={24} color={COLORS.primary} />
+
+                        <TouchableOpacity
+                            style={[styles.actionButton, (loading || processingAction) && styles.disabledButton]}
+                            onPress={handleDislike}
+                            disabled={loading || processingAction}
+                        >
+                            <Ionicons name="thumbs-down-outline" size={24} color={(loading || processingAction) ? COLORS.gray : COLORS.primary} />
                         </TouchableOpacity>
                     </View>
                 </ScrollView>
+
                 <ClothingDetailModal
                     visible={detailModalVisible}
                     item={selectedItem}
@@ -238,15 +276,16 @@ const styles = StyleSheet.create({
         color: COLORS.textPrimary,
     },
     gridContainer: {
-        paddingHorizontal: 10, // Kenar boşluğunu azalt
+        paddingHorizontal: 10,
         marginTop: 10,
+        minHeight: 200,
     },
     sectionTitle: {
         fontSize: 22,
         fontWeight: 'bold',
         color: COLORS.textPrimary,
-        marginBottom: 5, // Boşluğu azalt
-        paddingHorizontal: 10, // gridContainer'a uyum sağla
+        marginBottom: 5,
+        paddingHorizontal: 10,
     },
     suggestionHeader: {
         paddingHorizontal: 10,
@@ -255,15 +294,15 @@ const styles = StyleSheet.create({
     grid: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        // justifyContent kaldırıldı, item'lar kendi genişliğini alacak
     },
     gridItem: {
-        width: '50%', // Her item %50 genişlikte
+        width: '50%',
     },
     actionButtonsContainer: {
         flexDirection: 'row',
         justifyContent: 'space-around',
         padding: 20,
+        marginBottom: 20,
     },
     actionButton: {
         backgroundColor: COLORS.card,
@@ -273,6 +312,10 @@ const styles = StyleSheet.create({
         height: 60,
         justifyContent: 'center',
         alignItems: 'center',
+        elevation: 5,
+    },
+    disabledButton: {
+        opacity: 0.5,
     },
     loadingContainer: {
         height: 200,

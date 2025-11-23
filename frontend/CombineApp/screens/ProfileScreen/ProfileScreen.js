@@ -12,8 +12,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../colors';
 import { Ionicons } from '@expo/vector-icons';
-import { useAuth } from '../../context/AuthContext'; // AuthContext'i içeri aktar
+import { useAuth } from '../../context/AuthContext'; // Global kullanıcı verisi
 
+// --- YARDIMCI BİLEŞENLER ---
+
+// Menü Elemanı (Artık sadece İstatistikler için kullanılıyor)
 const ProfileMenuItem = ({ title, iconName, onPress }) => (
     <TouchableOpacity style={styles.menuItem} onPress={onPress}>
         <View style={styles.menuItemContent}>
@@ -23,16 +26,21 @@ const ProfileMenuItem = ({ title, iconName, onPress }) => (
         <Ionicons name="chevron-forward-outline" size={22} color={COLORS.gray} />
     </TouchableOpacity>
 );
+
+// Renk Göstergesi (Yuvarlak)
 const ColorCircle = ({ color }) => (
     <View style={[styles.colorCircle, { backgroundColor: color }]} />
 );
 
 const ProfileScreen = ({ navigation }) => {
-    const { user } = useAuth(); // AuthContext'ten kullanıcı verisini al
+    // Context'ten giriş yapmış kullanıcının bilgilerini çekiyoruz
+    const { user } = useAuth();
+
+    // --- YÖNLENDİRME FONKSİYONLARI ---
     const onSettingsPress = () => navigation.navigate('Settings');
     const onStatsPress = () => navigation.navigate('Statistics');
 
-    // Kullanıcı verisi yükleniyorsa veya yoksa bekleme ekranı göster
+    // Eğer kullanıcı verisi yüklenmediyse (null ise) yükleniyor göstergesi çıkar
     if (!user) {
         return (
             <LinearGradient colors={COLORS.gradient} style={styles.gradient}>
@@ -50,6 +58,17 @@ const ProfileScreen = ({ navigation }) => {
         >
             <SafeAreaView style={styles.container}>
                 <ScrollView>
+                    
+                    {/* --- ÜST BAR (AYARLAR BUTONU) --- */}
+                    {/* flex:1 sol tarafı iterek butonu sağa yaslar */}
+                    <View style={styles.topBar}>
+                        <View style={{ flex: 1 }} /> 
+                        <TouchableOpacity onPress={onSettingsPress} style={styles.settingsButton}>
+                            <Ionicons name="settings-outline" size={26} color={COLORS.textPrimary} />
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* --- PROFİL BAŞLIK ALANI --- */}
                     <View style={styles.header}>
                         <Image
                             source={{ uri: user.profileImageUrl }}
@@ -58,25 +77,28 @@ const ProfileScreen = ({ navigation }) => {
                         <Text style={styles.profileName}>{user.name}</Text>
                         <Text style={styles.profileLocation}>{user.location}</Text>
                     </View>
+
+                    {/* --- MENÜ KARTI --- */}
                     <View style={styles.menuContainer}>
                         <ProfileMenuItem
                             title="Statistics"
                             iconName="pie-chart-outline"
                             onPress={onStatsPress}
                         />
-                        <ProfileMenuItem
-                            title="Settings"
-                            iconName="settings-outline"
-                            onPress={onSettingsPress}
-                        />
+                        {/* NOT: Ayarlar butonu buradan kaldırıldı, yukarı taşındı. */}
                     </View>
+
+                    {/* --- DETAY BİLGİLER --- */}
                     <View style={styles.infoContainer}>
+                        {/* 1. Favori Renkler */}
                         <Text style={styles.infoTitle}>Favorite Colors</Text>
                         <View style={styles.colorContainer}>
                             {user.favoriteColors.map((color, index) => (
                                 <ColorCircle key={index} color={color} />
                             ))}
                         </View>
+
+                        {/* 2. Stil Tercihleri */}
                         <Text style={styles.infoTitle}>Style Preferences</Text>
                         <View style={styles.styleContainer}>
                             {user.stylePreferences.map((style, index) => (
@@ -85,6 +107,8 @@ const ProfileScreen = ({ navigation }) => {
                                 </View>
                             ))}
                         </View>
+
+                        {/* 3. Önemli Tarihler */}
                         <Text style={styles.infoTitle}>Important Dates</Text>
                         {user.importantDates.map((date) => (
                             <View key={date.id} style={styles.dateItem}>
@@ -93,6 +117,8 @@ const ProfileScreen = ({ navigation }) => {
                             </View>
                         ))}
                     </View>
+                    
+                    {/* Alt kısımda kaydırma payı */}
                     <View style={{ height: 30 }} />
                 </ScrollView>
             </SafeAreaView>
@@ -100,18 +126,26 @@ const ProfileScreen = ({ navigation }) => {
     );
 };
 
-
-// --- STİLLER GÜNCELLENDİ (VE TEMİZLENDİ) ---
 const styles = StyleSheet.create({
     gradient: { flex: 1 },
     container: {
         flex: 1,
     },
+    // --- YENİ EKLENEN STİL: SAĞ ÜST İKON İÇİN ---
+    topBar: {
+        flexDirection: 'row',
+        paddingHorizontal: 20,
+        paddingTop: 10,
+        justifyContent: 'flex-end', // İçeriği sağa yasla
+    },
+    settingsButton: {
+        padding: 5, // Tıklama alanını biraz genişlet
+    },
+    // -------------------------------------------
     header: {
         backgroundColor: 'transparent',
         alignItems: 'center',
-        // YENİ: Başlık ile resim arasına çok az boşluk (10px)
-        paddingTop: 10, 
+        paddingTop: 0, // Üst buton geldiği için buradaki boşluğu azalttık
     },
     profileImage: {
         width: 120,
@@ -142,7 +176,7 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         padding: 15,
-        borderBottomWidth: 1,
+        borderBottomWidth: 0, // Tek eleman kaldığı için çizgiye gerek yok
         borderBottomColor: COLORS.secondary,
     },
     menuItemContent: {

@@ -1,13 +1,6 @@
 import React, { useState } from 'react';
 import {
-    View,
-    Text,
-    StyleSheet,
-    Image,
-    TextInput,
-    TouchableOpacity,
-    ScrollView,
-    Alert
+    View, Text, StyleSheet, Image, TextInput, TouchableOpacity, ScrollView, Alert
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -16,79 +9,87 @@ import * as ImagePicker from 'expo-image-picker';
 import { useAuth } from '../../context/AuthContext';
 
 const EditProfileScreen = ({ navigation }) => {
+    // Mevcut kullanıcı bilgilerini Context'ten al
     const { user, updateUser } = useAuth();
 
+    // Local State: Form alanlarını yönetmek için
+    // Başlangıç değerleri mevcut kullanıcı bilgileridir.
     const [name, setName] = useState(user.name);
     const [location, setLocation] = useState(user.location);
     const [imageUri, setImageUri] = useState(user.profileImageUrl);
 
+    // --- KAYDETME MANTIĞI ---
     const handleSave = () => {
+        // Context'teki updateUser fonksiyonu ile global state'i güncelle
         updateUser({
             name,
             location,
             profileImageUrl: imageUri,
         });
-        Alert.alert('Success', 'Your profile has been updated.', [
-            { text: 'OK', onPress: () => navigation.goBack() }
+        Alert.alert('Başarılı', 'Profilin güncellendi.', [
+            { text: 'Tamam', onPress: () => navigation.goBack() }
         ]);
     };
 
+    // --- FOTOĞRAF DEĞİŞTİRME ---
     const handleChangePhoto = async () => {
+        // Galeri izni iste
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
-            Alert.alert('Permission Denied', 'Sorry, we need camera roll permissions to make this work!');
+            Alert.alert('İzin Reddedildi', 'Galeriye erişim izni gerekiyor.');
             return;
         }
 
+        // Galeriyi aç
         let result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
-            aspect: [1, 1],
+            allowsEditing: true, // Kırpma açık
+            aspect: [1, 1],      // Kare format
             quality: 1,
         });
 
         if (!result.canceled) {
-            // Gerçek uygulamada bu resmi bir bulut depolama servisine yükleyip
-            // URL'i almanız gerekir. Şimdilik yerel URI'ı kullanıyoruz.
+            // Seçilen resmi state'e ata
             setImageUri(result.assets[0].uri);
         }
     };
 
     return (
-        <LinearGradient
-            colors={COLORS.gradient}
-            style={styles.gradient}
-        >
+        <LinearGradient colors={COLORS.gradient} style={styles.gradient}>
             <SafeAreaView style={styles.container}>
                 <ScrollView>
+                    {/* Profil Resmi ve Değiştir Butonu */}
                     <View style={styles.imageContainer}>
                         <Image source={{ uri: imageUri }} style={styles.profileImage} />
                         <TouchableOpacity onPress={handleChangePhoto}>
-                            <Text style={styles.changePhotoText}>Change Photo</Text>
+                            <Text style={styles.changePhotoText}>Fotoğrafı Değiştir</Text>
                         </TouchableOpacity>
                     </View>
+
+                    {/* Bilgi Formu */}
                     <View style={styles.formContainer}>
-                        <Text style={styles.label}>Name</Text>
+                        <Text style={styles.label}>İsim</Text>
                         <TextInput
                             style={styles.input}
                             value={name}
                             onChangeText={setName}
-                            placeholder="Your Name"
+                            placeholder="İsminiz"
                             placeholderTextColor={COLORS.gray}
                         />
-                        <Text style={styles.label}>Location</Text>
+                        <Text style={styles.label}>Konum</Text>
                         <TextInput
                             style={styles.input}
                             value={location}
                             onChangeText={setLocation}
-                            placeholder="City, Country"
+                            placeholder="Şehir, Ülke"
                             placeholderTextColor={COLORS.gray}
                         />
                     </View>
+
+                    {/* Kaydet Butonu */}
                     <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                        <Text style={styles.saveButtonText}>Save Changes</Text>
+                        <Text style={styles.saveButtonText}>Değişiklikleri Kaydet</Text>
                     </TouchableOpacity>
-                    <View style={{ height: 30 }} />
                 </ScrollView>
             </SafeAreaView>
         </LinearGradient>

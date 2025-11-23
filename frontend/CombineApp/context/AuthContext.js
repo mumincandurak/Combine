@@ -5,7 +5,7 @@ import { COLORS } from '../screens/colors'; // Simülasyon verisi için eklendi
 
 const AuthContext = createContext();
 
-// Simülasyon verisi (ProfileScreen'den alındı)
+// Simülasyon verisi (Başlangıçta user bununla doluyor)
 const dummyUserProfile = {
     name: 'Elisa Yıldırım',
     location: 'Istanbul, TR',
@@ -19,10 +19,11 @@ const dummyUserProfile = {
 };
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(dummyUserProfile); // null yerine dummy data ile başlat
+  const [user, setUser] = useState(dummyUserProfile); 
   const [token, setToken] = useState(null);
 
-  // Yeni eklenen updateUser fonksiyonu
+  // --- KULLANICI GÜNCELLEME ---
+  // Profil düzenleme ekranlarında bu fonksiyonu kullanıyoruz.
   const updateUser = (newUserData) => {
     setUser(currentUser => ({
       ...currentUser,
@@ -39,7 +40,7 @@ export const AuthProvider = ({ children }) => {
         setToken(response.data.token);
         apiClient.defaults.headers.common['Authorization'] = `Bearer ${response.data.token}`;
         await authStorage.storeToken(response.data.token);
-        // Gerçek kullanıcı verisi varsa state'i güncelle
+        
         if (response.data.user) {
           setUser(response.data.user);
         }
@@ -63,8 +64,7 @@ export const AuthProvider = ({ children }) => {
     if (storedToken) {
       setToken(storedToken);
       apiClient.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
-      // Burada ideal olarak token ile kullanıcı verisi de çekilir
-      // Şimdilik dummy data kalıyor
+      // Token varsa burada normalde kullanıcı verisini çekmek gerekir.
     }
   };
 

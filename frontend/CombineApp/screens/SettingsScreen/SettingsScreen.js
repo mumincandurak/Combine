@@ -1,19 +1,14 @@
 import React from 'react';
 import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity,
-  Alert,
+  View, Text, StyleSheet, TouchableOpacity, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
 import { COLORS } from '../colors';
 import { Ionicons } from '@expo/vector-icons';
 import { useAuth } from '../../context/AuthContext';
-// import { useHeaderHeight } from '@react-navigation/elements'; // <-- SİLİNDİ
 
-// Menü butonu bileşeni (Aynı)
+// Menü Elemanı (ProfileScreen'deki ile aynı mantık)
 const SettingsMenuItem = ({ title, iconName, onPress }) => (
   <TouchableOpacity style={styles.menuItem} onPress={onPress}>
     <View style={styles.menuItemContent}>
@@ -25,46 +20,45 @@ const SettingsMenuItem = ({ title, iconName, onPress }) => (
 );
 
 const SettingsScreen = ({ navigation }) => {
-  const { logout } = useAuth();
+  const { logout } = useAuth(); // Context'ten çıkış fonksiyonunu al
 
+  // --- ÇIKIŞ YAPMA MANTIĞI ---
   const handleLogout = () => {
-    Alert.alert("Log Out", "Are you sure you want to log out?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Log Out", onPress: () => logout(), style: "destructive" },
+    // Kullanıcıya emin olup olmadığını soruyoruz
+    Alert.alert("Çıkış Yap", "Çıkış yapmak istediğinize emin misiniz?", [
+      { text: "İptal", style: "cancel" },
+      { text: "Çıkış Yap", onPress: () => logout(), style: "destructive" }, // Kırmızı buton
     ]);
   };
   
-  // const headerHeight = useHeaderHeight(); // <-- SİLİNDİ
-
   return (
-    <LinearGradient
-      colors={COLORS.gradient} 
-      style={styles.gradient}
-    >
+    <LinearGradient colors={COLORS.gradient} style={styles.gradient}>
       <SafeAreaView style={styles.container}>
-        {/* 'paddingTop: headerHeight' kaldırıldı */}
         <View> 
+          {/* --- DÜZENLEME MENÜLERİ --- */}
           <View style={styles.menuContainer}>
             <SettingsMenuItem 
-              title="Edit Profile" 
+              title="Profili Düzenle" 
               iconName="person-outline"
               onPress={() => navigation.navigate('EditProfile')}
             />
             <SettingsMenuItem 
-              title="Edit Styles & Colors" 
+              title="Stil ve Renkleri Düzenle" 
               iconName="color-palette-outline"
               onPress={() => navigation.navigate('EditStyle')}
             />
             <SettingsMenuItem 
-              title="Edit Important Dates" 
+              title="Önemli Tarihleri Düzenle" 
               iconName="calendar-outline"
               onPress={() => navigation.navigate('EditDates')}
             />
           </View>
+
+          {/* --- ÇIKIŞ BUTONU --- */}
           <View style={styles.logoutButtonContainer}>
             <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
               <Ionicons name="log-out-outline" size={22} color={'#E74C3C'} />
-              <Text style={styles.logoutButtonText}>Log Out</Text>
+              <Text style={styles.logoutButtonText}>Çıkış Yap</Text>
             </TouchableOpacity>
           </View>
         </View>
