@@ -31,15 +31,24 @@ const darkScreenOptions = {
         shadowOpacity: 0,
         elevation: 0,
         borderBottomWidth: 0,
+        height: 56, // <-- Küçültmek için burayı değiştir (örnek: 56)
     },
     headerTintColor: COLORS.textPrimary,
     headerTitleStyle: {
         fontWeight: "bold",
         fontSize: 22,
     },
+    headerTitleContainerStyle: {
+        height: 56, // headerStyle.height ile eşleştir
+        justifyContent: "center",
+    },
     headerTitleAlign: "center",
-    headerLeftContainerStyle: { paddingLeft: 10 },
-    headerRightContainerStyle: { paddingRight: 10 },
+
+    //headerBackTitleVisible: false, // Android/iOS'da metin kaldırır
+    headerLeftContainerStyle: {
+        paddingLeft: 0, // sola uzaklık
+        paddingVertical: 27, // dikey konum için ayar (gerekirse değiştir)
+    },
 };
 
 function AuthStack() {
