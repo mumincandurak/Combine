@@ -4,7 +4,7 @@ import axios from 'axios';
 // Eğer telefonunuzdan test ediyorsanız 'localhost' yerine bilgisayarınızın IP adresini yazmalısınız.
 // Örn: http://192.168.1.10:3001/api
 const apiClient = axios.create({
-  baseURL: 'http://192.168.1.113:5000', // Backend'deki portunuza göre düzenleyin
+  baseURL: 'http://172.20.10.4:5000', // Backend'deki portunuza göre düzenleyin
 });
 
 export default apiClient;
