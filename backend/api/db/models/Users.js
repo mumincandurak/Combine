@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const { Schema } = mongoose;
 
 const schema = mongoose.Schema({
     userName: { type: String, required: true},
@@ -20,6 +21,6 @@ class Users extends mongoose.Model {
 
 };
 
-Schema.loadClass(Users);
+schema.loadClass(Users);
 
 module.exports = mongoose.model('Users', schema);

@@ -1,140 +1,112 @@
 var express = require('express');
 var router = express.Router();
-console.log("Clothes.js dosyası okundu!"); // <--- BU SATIRI EKLE
-var ClothingItems = require('../db/models/ClothingItems'); // Model yolunu kontrol et
+var OutfitItems = require('../db/models/OutfitItems'); // Adjust path if necessary
 var response = require("../lib/Response");
 var _enum = require("../config/enum");
 var verifyToken = require("../lib/authToken");
-router.get('/test', (req, res) => {
-    res.send("Bağlantı başarılı! Clothes rotasına ulaştın.");
-});
 
-/* GET all clothes for the logged-in user */
+/* GET all outfit items for the logged-in user */
 router.get("/", verifyToken, async (req, res) => {
     try {
-        // Sadece token'daki kullanıcıya ait kıyafetleri getir
-        const items = await ClothingItems.find({ userId: req.user.id });
+        const items = await OutfitItems.find({ userId: req.user.id });
 
         return res.status(_enum.HTTP_STATUS.OK).json(
             response.successResponse(_enum.HTTP_STATUS.OK, items)
         );
     } catch (err) {
-        console.error("Error: get clothes", err);
+        console.error("Error: get outfit items", err);
         return res.status(_enum.HTTP_STATUS.INTERNAL_SERVER_ERROR).json(
             response.errorResponse(_enum.HTTP_STATUS.INTERNAL_SERVER_ERROR, err.message)
         );
     }
 });
 
-/* POST add a new cloth */
+/* POST add a new outfit item (log/rating) */
 router.post("/add", verifyToken, async (req, res) => {
     try {
-        const {
-            name,
-            category,
-            subCategory,
-            occasionId,
-            description,
-            size,
-            color,
-            imageUrl,
-            material,
-            brand,
-            season,
-            tempratureRange
-        } = req.body;
+        const { itemId, rating, description, liked } = req.body;
 
-        // Zorunlu alan kontrolü (Modelde required olanlar)
-        if (!name || !category || !subCategory || !occasionId) {
+        // Check required fields based on Schema
+        if (!itemId) {
             return res.status(_enum.HTTP_STATUS.BAD_REQUEST).json(
                 response.errorResponse(_enum.HTTP_STATUS.BAD_REQUEST, {
                     message: "Missing required fields",
-                    description: "Name, Category, SubCategory, and OccasionId are required."
+                    description: "itemId is required."
                 })
             );
         }
 
-        const newCloth = new ClothingItems({
-            userId: req.user.id, // Token'dan gelen user ID'yi kullanıyoruz
-            name,
-            category,
-            subCategory,
-            occasionId,
+        const newOutfitItem = new OutfitItems({
+            userId: req.user.id, // From Token
+            itemId,
+            rating,
             description,
-            size,
-            color,
-            imageUrl,
-            material,
-            brand,
-            season,
-            tempratureRange,
-            isActive: true
+            liked: liked || false
         });
 
-        const savedCloth = await newCloth.save();
+        const savedItem = await newOutfitItem.save();
 
         return res.status(_enum.HTTP_STATUS.CREATED).json(
             response.successResponse(_enum.HTTP_STATUS.CREATED, {
-                message: "Clothing item added successfully",
-                item: savedCloth
+                message: "Outfit item added successfully",
+                item: savedItem
             })
         );
 
     } catch (err) {
-        console.error("Error: add cloth", err);
+        console.error("Error: add outfit item", err);
         return res.status(_enum.HTTP_STATUS.INTERNAL_SERVER_ERROR).json(
             response.errorResponse(_enum.HTTP_STATUS.INTERNAL_SERVER_ERROR, err.message)
         );
     }
 });
 
-/* PUT update a cloth */
+/* PUT update an outfit item */
 router.put("/update/:id", verifyToken, async (req, res) => {
     try {
         const updates = req.body;
-        
-        // Güvenlik: Kullanıcı başkasının kıyafetini güncelleyememeli
-        // Hem ID eşleşmeli hem de userId token'daki ile aynı olmalı
-        const updatedCloth = await ClothingItems.findOneAndUpdate(
+
+        // Security: Ensure the item belongs to the logged-in user
+        const updatedItem = await OutfitItems.findOneAndUpdate(
             { _id: req.params.id, userId: req.user.id },
             updates,
-            { new: true } // Güncellenmiş veriyi döndür
+            { new: true } // Return the updated document
         );
 
-        if (!updatedCloth) {
+        if (!updatedItem) {
             return res.status(_enum.HTTP_STATUS.NOT_FOUND).json(
                 response.errorResponse(_enum.HTTP_STATUS.NOT_FOUND, {
                     message: "Item not found or unauthorized",
-                    description: "Could not find the clothing item to update."
+                    description: "Could not find the outfit item to update."
                 })
             );
         }
 
         return res.status(_enum.HTTP_STATUS.OK).json(
             response.successResponse(_enum.HTTP_STATUS.OK, {
-                message: "Item updated successfully",
-                item: updatedCloth
+                message: "Outfit item updated successfully",
+                item: updatedItem
             })
         );
 
     } catch (err) {
-        console.error("Error: update cloth", err);
+        console.error("Error: update outfit item", err);
         return res.status(_enum.HTTP_STATUS.INTERNAL_SERVER_ERROR).json(
             response.errorResponse(_enum.HTTP_STATUS.INTERNAL_SERVER_ERROR, err.message)
         );
     }
 });
 
-/* DELETE a cloth */
+/* DELETE an outfit item */
 router.delete("/delete/:id", verifyToken, async (req, res) => {
     try {
-        // Güvenlik: Sadece kendi eklediği kıyafeti silebilir
-        const deletedCloth = await ClothingItems.findOneAndDelete({
+        // Security: Ensure the item belongs to the logged-in user
+        const deletedItem = await OutfitItems.findOneAndDelete({
             _id: req.params.id,
             userId: req.user.id
         });
 
-        if (!deletedCloth) {
+        if (!deletedItem) {
             return res.status(_enum.HTTP_STATUS.NOT_FOUND).json(
                 response.errorResponse(_enum.HTTP_STATUS.NOT_FOUND, {
                     message: "Error: delete item",
@@ -144,7 +116,7 @@ router.delete("/delete/:id", verifyToken, async (req, res) => {
         }
 
         return res.status(_enum.HTTP_STATUS.OK).json(
-            response.successResponse(_enum.HTTP_STATUS.OK, "Item deleted successfully")
+            response.successResponse(_enum.HTTP_STATUS.OK, "Outfit item deleted successfully")
         );
 
     } catch (err) {

@@ -5,12 +5,13 @@
  */
 
 
-
+console.log("port running");
 var app = require('../app');
 var debug = require('debug')('api:server');
 var http = require('http');
-const Database = require('../db/database');
-const { CONNECTION_STRING, PORT } = require('../config');
+const Database = require('../db/Database');
+const { CONNECTION_STRING, PORT } = require('../config/index.js');
+
 /**
  * Get port from environment and store in Express.
  */
@@ -23,6 +24,7 @@ app.set('port', port);
  */
 
 var server = http.createServer(app);
+
 
 /**
  * Listen on provided port, on all network interfaces.
@@ -84,13 +86,17 @@ function onError(error) {
  * Event listener for HTTP server "listening" event.
  */
 
-function onListening() {
+async function onListening() {
   var addr = server.address();
   var bind = typeof addr === 'string'
     ? 'pipe ' + addr
     : 'port ' + addr.port;
   debug('Listening on ' + bind);
 
-  new Database().connect({CONNECTION_STRING});
+  try {
+    await new Database().connect({ CONNECTION_STRING });
+  } catch (error) {
+    console.error("Failed to connect to database:", error);
+  }
 
 }
