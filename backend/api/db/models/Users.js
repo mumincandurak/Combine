@@ -6,18 +6,29 @@ const schema = mongoose.Schema({
     email: { type: String, required: true},
     passwordHash: { type: String, required: true},
     isActive: { type: Boolean, default: true},
-    preferences: String
+    
+  
+
+    favoriteColors: {
+        type: [String], 
+        default: []   
+    },
+
+
+    stylePreferences: {
+        type: [String], 
+        default: []
+    }
+
 },{
     versionKey: false, 
     timestamps:{
         createdAt: 'createdAt',
         updatedAt: 'updatedAt'
     }
-}
-);
+});
 
 class Users extends mongoose.Model {
-
 
 };
 
