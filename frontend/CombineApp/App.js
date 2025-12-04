@@ -1,24 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { View, ActivityIndicator } from 'react-native';
-import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator } from '@react-navigation/stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { COLORS } from './colors';
+import React, { useState, useEffect } from "react";
+import { View, ActivityIndicator } from "react-native";
+import { NavigationContainer } from "@react-navigation/native";
+import { createStackNavigator } from "@react-navigation/stack";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { Ionicons } from "@expo/vector-icons";
+import { AuthProvider, useAuth } from "./context/AuthContext";
+import { COLORS } from "./colors";
 
 // Ekranlar
-import LoginScreen from './screens/LoginScreen/LoginScreen';
-import RegisterScreen from './screens/RegisterScreen/RegisterScreen';
-import HomeScreen from './screens/HomeScreen/HomeScreen';
-import WardrobeScreen from './screens/WardrobeScreen/WardrobeScreen';
-import ProfileScreen from './screens/ProfileScreen/ProfileScreen';
-import SettingsScreen from './screens/SettingsScreen/SettingsScreen';
-import EditProfileScreen from './screens/EditProfileScreen/EditProfileScreen';
-import EditStyleScreen from './screens/EditStyleScreen/EditStyleScreen';
-import EditDatesScreen from './screens/EditDatesScreen/EditDatesScreen';
-import StatisticsScreen from './screens/StatisticsScreen/StatisticsScreen';
-import AddClothingScreen from './screens/AddClothingScreen/AddClothingScreen';
+import LoginScreen from "./screens/LoginScreen/LoginScreen";
+import RegisterScreen from "./screens/RegisterScreen/RegisterScreen";
+import HomeScreen from "./screens/HomeScreen/HomeScreen";
+import WardrobeScreen from "./screens/WardrobeScreen/WardrobeScreen";
+import ProfileScreen from "./screens/ProfileScreen/ProfileScreen";
+import SettingsScreen from "./screens/SettingsScreen/SettingsScreen";
+import EditProfileScreen from "./screens/EditProfileScreen/EditProfileScreen";
+import EditStyleScreen from "./screens/EditStyleScreen/EditStyleScreen";
+import EditDatesScreen from "./screens/EditDatesScreen/EditDatesScreen";
+import StatisticsScreen from "./screens/StatisticsScreen/StatisticsScreen";
+import AddClothingScreen from "./screens/AddClothingScreen/AddClothingScreen";
+import OutfitScreen from "./screens/OutfitScreen/OutfitScreen";
+import CreateOutfitScreen from "./screens/CreateOutfitScreen/CreateOutfitScreen";
 
 const Stack = createStackNavigator(); // Ana Stack (Global sayfalar için)
 const Tab = createBottomTabNavigator();
@@ -26,29 +28,29 @@ const WardrobeStack = createStackNavigator();
 
 // --- BAŞLIK AYARLARI ---
 const darkScreenOptions = {
-    headerStyle: {
-        backgroundColor: COLORS.gradient[0], // Koyu lacivert
-        shadowOpacity: 0,
-        elevation: 0,
-        borderBottomWidth: 0,
-        height: 56, // <-- Küçültmek için burayı değiştir (örnek: 56)
-    },
-    headerTintColor: COLORS.textPrimary,
-    headerTitleStyle: {
-        fontWeight: "bold",
-        fontSize: 22,
-    },
-    headerTitleContainerStyle: {
-        height: 56, // headerStyle.height ile eşleştir
-        justifyContent: "center",
-    },
-    headerTitleAlign: "center",
+  headerStyle: {
+    backgroundColor: COLORS.gradient[0], // Koyu lacivert
+    shadowOpacity: 0,
+    elevation: 0,
+    borderBottomWidth: 0,
+    height: 56, // <-- Küçültmek için burayı değiştir (örnek: 56)
+  },
+  headerTintColor: COLORS.textPrimary,
+  headerTitleStyle: {
+    fontWeight: "bold",
+    fontSize: 22,
+  },
+  headerTitleContainerStyle: {
+    height: 56, // headerStyle.height ile eşleştir
+    justifyContent: "center",
+  },
+  headerTitleAlign: "center",
 
-    //headerBackTitleVisible: false, // Android/iOS'da metin kaldırır
-    headerLeftContainerStyle: {
-        paddingLeft: 0, // sola uzaklık
-        paddingVertical: 27, // dikey konum için ayar (gerekirse değiştir)
-    },
+  //headerBackTitleVisible: false, // Android/iOS'da metin kaldırır
+  headerLeftContainerStyle: {
+    paddingLeft: 0, // sola uzaklık
+    paddingVertical: 27, // dikey konum için ayar (gerekirse değiştir)
+  },
 };
 
 function AuthStack() {
@@ -64,8 +66,16 @@ function AuthStack() {
 function WardrobeNavigator() {
   return (
     <WardrobeStack.Navigator screenOptions={darkScreenOptions}>
-      <WardrobeStack.Screen name="WardrobeMain" component={WardrobeScreen} options={{ title: 'My Wardrobe' }} />
-      <WardrobeStack.Screen name="AddClothing" component={AddClothingScreen} options={{ title: 'Add New Item' }} />
+      <WardrobeStack.Screen
+        name="WardrobeMain"
+        component={WardrobeScreen}
+        options={{ title: "My Wardrobe" }}
+      />
+      <WardrobeStack.Screen
+        name="AddClothing"
+        component={AddClothingScreen}
+        options={{ title: "Add New Item" }}
+      />
     </WardrobeStack.Navigator>
   );
 }
@@ -74,96 +84,111 @@ function WardrobeNavigator() {
 function MainTabs() {
   return (
     <Tab.Navigator
-            screenOptions={{
-                tabBarActiveTintColor: COLORS.primaryText,
-                tabBarInactiveTintColor: COLORS.gray,
-                tabBarShowLabel: false,
+      screenOptions={{
+        tabBarActiveTintColor: COLORS.primaryText,
+        tabBarInactiveTintColor: COLORS.gray,
+        tabBarShowLabel: false,
 
-                tabBarStyle: {
-                    backgroundColor: COLORS.primary,
-                    borderTopWidth: 0,
-                    elevation: 0,
-                    paddingTop: 0, // üst boşluğu kaldır
-                    paddingBottom: 4,
-                    height: 40,
-                    marginTop: 0,
-                },
-                tabBarItemStyle: {
-                    paddingTop: 0,
-                    paddingBottom: 0,
-                    margin: 0,
-                    alignItems: "center",
-                    justifyContent: "center",
-                },
+        tabBarStyle: {
+          backgroundColor: COLORS.primary,
+          borderTopWidth: 0,
+          elevation: 0,
+          paddingTop: 0, // üst boşluğu kaldır
+          paddingBottom: 4,
+          height: 40,
+          marginTop: 0,
+        },
+        tabBarItemStyle: {
+          paddingTop: 0,
+          paddingBottom: 0,
+          margin: 0,
+          alignItems: "center",
+          justifyContent: "center",
+        },
 
-                headerShown: false, // Varsayılan olarak başlıkları gizle (Home için gerekli)
-            }}
-        >
-            <Tab.Screen
-                name="Home"
-                component={HomeScreen}
-                options={{
-                    tabBarIcon: ({ color }) => (
-                        <View
-                            style={{
-                                alignItems: "center",
-                                justifyContent: "center",
-                                marginTop: -80,
-                            }}
-                        >
-                            <Ionicons name="home" size={24} color={color} />
-                        </View>
-                    ),
-                }}
-            />
-            <Tab.Screen
-                name="Wardrobe"
-                component={WardrobeNavigator}
-                options={{
-                    tabBarIcon: ({ color }) => (
-                        <View
-                            style={{
-                                alignItems: "center",
-                                justifyContent: "center",
-                                marginTop: -80,
-                            }}
-                        >
-                            <Ionicons
-                                name="cut-outline"
-                                size={24}
-                                color={color}
-                            />
-                        </View>
-                    ),
-                }}
-            />
+        headerShown: false, // Varsayılan olarak başlıkları gizle (Home için gerekli)
+      }}
+    >
+      <Tab.Screen
+        name="Home"
+        component={HomeScreen}
+        options={{
+          tabBarIcon: ({ color }) => (
+            <View
+              style={{
+                alignItems: "center",
+                justifyContent: "center",
+                marginTop: -80,
+              }}
+            >
+              <Ionicons name="home" size={24} color={color} />
+            </View>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Wardrobe"
+        component={WardrobeNavigator}
+        options={{
+          tabBarIcon: ({ color }) => (
+            <View
+              style={{
+                alignItems: "center",
+                justifyContent: "center",
+                marginTop: -80,
+              }}
+            >
+              <Ionicons name="cut-outline" size={24} color={color} />
+            </View>
+          ),
+        }}
+      />
 
-            {}
-            <Tab.Screen
-                name="Profile"
-                component={ProfileScreen}
-                options={{
-                    title: "Profile",
-                    headerShown: true,
-                    ...darkScreenOptions,
-                    tabBarIcon: ({ color }) => (
-                        <View
-                            style={{
-                                alignItems: "center",
-                                justifyContent: "center",
-                                marginTop: -80,
-                            }}
-                        >
-                            <Ionicons
-                                name="person-outline"
-                                size={24}
-                                color={color}
-                            />
-                        </View>
-                    ),
-                }}
-            />
-        </Tab.Navigator>
+      {}
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          title: "Profile",
+          headerShown: true,
+          ...darkScreenOptions,
+          tabBarIcon: ({ color }) => (
+            <View
+              style={{
+                alignItems: "center",
+                justifyContent: "center",
+                marginTop: -80,
+              }}
+            >
+              <Ionicons name="person-outline" size={24} color={color} />
+            </View>
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Outfits"
+        component={OutfitScreen}
+        options={{
+          // Using the same header options as Profile so it looks consistent
+          title: "My Outfits",
+          headerShown: true,
+          ...darkScreenOptions,
+
+          tabBarIcon: ({ color }) => (
+            <View
+              style={{
+                alignItems: "center",
+                justifyContent: "center",
+                marginTop: -80, // Keeping your custom style
+              }}
+            >
+              {/* 'shirt-outline' represents outfits well, or you could use 'heart-outline' for favorites */}
+              <Ionicons name="shirt-outline" size={24} color={color} />
+            </View>
+          ),
+        }}
+      />
+    </Tab.Navigator>
   );
 }
 
@@ -172,18 +197,42 @@ function AppStack() {
   return (
     <Stack.Navigator screenOptions={darkScreenOptions}>
       {/* 1. Ana Sekmeler (Header kapalı çünkü içerdekiler halledecek) */}
-      <Stack.Screen 
-        name="MainTabs" 
-        component={MainTabs} 
-        options={{ headerShown: false }} 
+      <Stack.Screen
+        name="MainTabs"
+        component={MainTabs}
+        options={{ headerShown: false }}
       />
-      
       {/* 2. Global Sayfalar (Geri butonu çalışsın diye burada) */}
-      <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: 'Settings' }} />
-      <Stack.Screen name="EditProfile" component={EditProfileScreen} options={{ title: 'Edit Profile' }} />
-      <Stack.Screen name="EditStyle" component={EditStyleScreen} options={{ title: 'Style & Colors' }} />
-      <Stack.Screen name="EditDates" component={EditDatesScreen} options={{ title: 'Important Dates' }} />
-      <Stack.Screen name="Statistics" component={StatisticsScreen} options={{ title: 'Statistics' }} />
+      <Stack.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{ title: "Settings" }}
+      />
+      <Stack.Screen
+        name="EditProfile"
+        component={EditProfileScreen}
+        options={{ title: "Edit Profile" }}
+      />
+      <Stack.Screen
+        name="EditStyle"
+        component={EditStyleScreen}
+        options={{ title: "Style & Colors" }}
+      />
+      <Stack.Screen
+        name="EditDates"
+        component={EditDatesScreen}
+        options={{ title: "Important Dates" }}
+      />
+      <Stack.Screen
+        name="Statistics"
+        component={StatisticsScreen}
+        options={{ title: "Statistics" }}
+      />
+      <Stack.Screen
+        name="CreateOutfit"
+        component={CreateOutfitScreen}
+        options={{ title: "Create New Outfit" }}
+      />
     </Stack.Navigator>
   );
 }
@@ -202,7 +251,7 @@ function RootNavigator() {
 
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
         <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     );
