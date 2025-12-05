@@ -1,15 +1,17 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
 import authStorage from "../auth/storage";
 import apiClient from "../api/client";
-import { COLORS } from "../screens/colors"; // Simülasyon verisi için eklendi
-import * as Location from "expo-location"; // <-- eklendi
+import { COLORS } from "../screens/colors";
+import * as Location from "expo-location";
 
 const AuthContext = createContext();
 
-// Simülasyon verisi (Başlangıçta user bununla doluyor)
 const dummyUserProfile = {
     name: "Elisa Yıldırım",
     location: "Istanbul, TR",
+    country: "Turkey",
+    city: "Istanbul",
+    neighborhood: "Beşiktaş",
     profileImageUrl: "https://via.placeholder.com/150/FFFFFF/1B1229?text=User",
     favoriteColors: [COLORS.primary, COLORS.secondary, "#d1c4e9"],
     stylePreferences: ["Casual", "Minimalist"],
@@ -45,7 +47,6 @@ export const AuthProvider = ({ children }) => {
                 const places = await Location.reverseGeocodeAsync(coords);
                 if (places && places.length > 0) {
                     const place = places[0];
-                    // Semt / mahalle için çeşitli alanları kontrol et (provider'a göre farklılık olabilir)
                     const neighborhood =
                         place.subregion ||
                         place.district ||
@@ -56,7 +57,6 @@ export const AuthProvider = ({ children }) => {
                         place.city || place.region || place.subregion || "";
                     const country = place.country || "";
 
-                    // İnsan okunur bir lokasyon string'i oluştur
                     const locationString = [
                         neighborhood && neighborhood.trim(),
                         city && city.trim(),
@@ -65,12 +65,13 @@ export const AuthProvider = ({ children }) => {
                         .filter(Boolean)
                         .join(", ");
 
-                    // Kullanıcı objesini güncelle
                     setUser((current) => ({
                         ...current,
                         location: locationString || current.location,
                         neighborhood:
                             neighborhood || current.neighborhood || "",
+                        city: city || current.city || "",
+                        country: country || current.country || "",
                     }));
                 }
             } catch (err) {
@@ -80,7 +81,6 @@ export const AuthProvider = ({ children }) => {
     }, []);
 
     // --- KULLANICI GÜNCELLEME ---
-    // Profil düzenleme ekranlarında bu fonksiyonu kullanıyoruz.
     const updateUser = (newUserData) => {
         setUser((currentUser) => ({
             ...currentUser,
@@ -128,7 +128,6 @@ export const AuthProvider = ({ children }) => {
             apiClient.defaults.headers.common[
                 "Authorization"
             ] = `Bearer ${storedToken}`;
-            // Token varsa burada normalde kullanıcı verisini çekmek gerekir.
         }
     };
 
