@@ -3,6 +3,8 @@ import authStorage from "../auth/storage";
 import apiClient from "../api/client";
 import { COLORS } from "../screens/colors";
 import * as Location from "expo-location";
+import { AppState } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const AuthContext = createContext();
 
@@ -21,30 +23,98 @@ const dummyUserProfile = {
     ],
 };
 
+const DEFAULT_LOCATION = {
+    country: "Türkiye",
+    city: "Istanbul",
+    neighborhood: "Beşiktaş",
+    location: "Beşiktaş, Istanbul, Türkiye",
+    coords: { latitude: 41.0082, longitude: 28.9784 },
+};
+
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(dummyUserProfile);
     const [token, setToken] = useState(null);
+    const [locationUpdated, setLocationUpdated] = useState(false);
 
-    // --- KONUM ALMA (UYGULAMA AÇILDIĞINDA) ---
+    // Load saved location (or default) on startup
     useEffect(() => {
         (async () => {
             try {
-                const { status } =
-                    await Location.requestForegroundPermissionsAsync();
-                if (status !== "granted") {
-                    console.log("Location permission denied");
-                    return;
+                const saved = await AsyncStorage.getItem("@saved_location");
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    setUser((cur) => ({ ...cur, ...parsed }));
+                } else {
+                    // save default so app has a stable fallback
+                    await AsyncStorage.setItem(
+                        "@saved_location",
+                        JSON.stringify(DEFAULT_LOCATION)
+                    );
+                    setUser((cur) => ({ ...cur, ...DEFAULT_LOCATION }));
                 }
+            } catch (err) {
+                console.warn("Failed loading saved location", err);
+            }
 
+            // Then try to update from device if possible (won't spam permission dialogs)
+            updateLocationData();
+        })();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // --- KONUM GÜNCELLEME FONKSİYONU ---
+    const updateLocationData = async () => {
+        let locationSuccess = false;
+        let savedLocation = null;
+
+        // 1. Kayıtlı/Varsayılan Konumu Hazırla (Her durumda kullanılacak fallback)
+        try {
+            const saved = await AsyncStorage.getItem("@saved_location");
+            if (saved) {
+                savedLocation = JSON.parse(saved);
+            } else {
+                savedLocation = DEFAULT_LOCATION;
+                await AsyncStorage.setItem(
+                    "@saved_location",
+                    JSON.stringify(DEFAULT_LOCATION)
+                );
+            }
+        } catch (err) {
+            console.warn("Failed retrieving saved location for fallback", err);
+            savedLocation = DEFAULT_LOCATION;
+        }
+
+        try {
+            // 2. İzin durumunu kontrol et.
+            const currentPerm = await Location.getForegroundPermissionsAsync();
+            let status = currentPerm.status;
+
+            // 3. Konum servisleri açık mı? (Ek kontrol, önceki çözümden)
+            const isEnabled = await Location.hasServicesEnabledAsync();
+
+            console.log(
+                `Location Check: Status=${status}, Enabled=${isEnabled}`
+            );
+
+            // Eğer izin verilmediyse VEYA izin verilse bile GPS kapalıysa, konumu almaya kalkma.
+            if (status === "granted" && isEnabled) {
+                // --- İZİN VERİLDİ VE GPS AÇIK, Konum Almayı Dene ---
+                console.log("Attempting to get current GPS location...");
+
+                // getCurrentPositionAsync, GPS kapalıyken bile bir sistem uyarısı tetikleyebilir.
+                // Bu yüzden bir timeout ile sarıyoruz.
                 const pos = await Location.getCurrentPositionAsync({
                     accuracy: Location.Accuracy.Highest,
+                    timeout: 5000, // 5 saniye bekle, sistem uyarısı gelirse bu süre içinde gelir.
                 });
+
                 const coords = {
                     latitude: pos.coords.latitude,
                     longitude: pos.coords.longitude,
                 };
 
                 const places = await Location.reverseGeocodeAsync(coords);
+
                 if (places && places.length > 0) {
                     const place = places[0];
                     const neighborhood =
@@ -65,19 +135,96 @@ export const AuthProvider = ({ children }) => {
                         .filter(Boolean)
                         .join(", ");
 
-                    setUser((current) => ({
-                        ...current,
-                        location: locationString || current.location,
-                        neighborhood:
-                            neighborhood || current.neighborhood || "",
-                        city: city || current.city || "",
-                        country: country || current.country || "",
-                    }));
+                    savedLocation = {
+                        neighborhood: neighborhood || "",
+                        city: city || "",
+                        country: country || "",
+                        location: locationString || "",
+                        coords,
+                    };
+                    locationSuccess = true;
                 }
-            } catch (err) {
-                console.warn("Failed to get device location", err);
             }
+        } catch (err) {
+            // getCurrentPositionAsync, zaman aşımı veya sistem ayarı hatası (o meşhur uyarı)
+            // verdiğinde BURAYA düşeriz. Bu durumda uyarıyı kullanıcıya yansıtmak yerine sessizce devam ederiz.
+            console.warn(
+                "Failed to get device location (likely GPS off/timeout):",
+                err.message
+            );
+            locationSuccess = false;
+            // Fallback için savedLocation zaten yukarıda ayarlandı.
+        }
+
+        // 4. Sonuç ne olursa olsun, kullanıcı state'ini güncelle.
+        setUser((current) => {
+            const prevLoc = {
+                city: current.city || "",
+                country: current.country || "",
+                neighborhood: current.neighborhood || "",
+                coords: current.coords || {},
+            };
+
+            const hasChanged =
+                prevLoc.city !== savedLocation.city ||
+                prevLoc.country !== savedLocation.country ||
+                prevLoc.neighborhood !== savedLocation.neighborhood ||
+                prevLoc.coords.latitude !== savedLocation.coords.latitude ||
+                prevLoc.coords.longitude !== savedLocation.coords.longitude;
+
+            if (locationSuccess && hasChanged) {
+                // Başarılı GPS konumu alındıysa, kalıcı kaydet ve güncelle
+                AsyncStorage.setItem(
+                    "@saved_location",
+                    JSON.stringify(savedLocation)
+                ).catch((e) =>
+                    console.warn("Failed to save location to storage", e)
+                );
+
+                setLocationUpdated((prev) => !prev);
+                return { ...current, ...savedLocation };
+            } else if (!locationSuccess && hasChanged) {
+                // GPS alınamadıysa (kullanıcı kapattıysa) ve kayıtlı konum farklıysa
+                // yine de kayıtlı konuma geçiş yap.
+                return { ...current, ...savedLocation };
+            }
+
+            // Konum başarıyla alınamadı ve kayıtlı konumda bir değişiklik yok.
+            return current;
+        });
+
+        return locationSuccess;
+    };
+
+    // --- UYGULAMA AÇILDIĞINDA KONUM AL ---
+    useEffect(() => {
+        (async () => {
+            // ... (Kayıtlı konumu yükleme/varsayılanı ayarlama mantığı aynı kalır)
+
+            // Then try to update from device if possible (won't spam permission dialogs)
+            // YENİ: forcePrompt=false olarak çağırıyoruz
+            updateLocationData(false);
         })();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // --- UYGULAMA ARKA PLANDAN ÖN PLANA GELDİĞİNDE KONUM KONTROLÜ ---
+    useEffect(() => {
+        const subscription = AppState.addEventListener(
+            "change",
+            (nextState) => {
+                if (nextState === "active") {
+                    console.log("App came to foreground, checking location...");
+                    // When user returns from settings (may have enabled location), try update
+                    // YENİ: forcePrompt=false olarak çağırıyoruz
+                    updateLocationData(false);
+                }
+            }
+        );
+
+        return () => {
+            subscription.remove();
+        };
     }, []);
 
     // --- KULLANICI GÜNCELLEME ---
@@ -133,7 +280,15 @@ export const AuthProvider = ({ children }) => {
 
     return (
         <AuthContext.Provider
-            value={{ token, user, login, logout, restoreToken, updateUser }}
+            value={{
+                token,
+                user,
+                login,
+                logout,
+                restoreToken,
+                updateUser,
+                locationUpdated,
+            }}
         >
             {children}
         </AuthContext.Provider>
