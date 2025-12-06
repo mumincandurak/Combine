@@ -1,64 +1,102 @@
-// This file simulates API calls to the backend for clothing items.
-// In a real application, this would use apiClient to make actual HTTP requests.
+// api/clothing.js
 
 const dummyWardrobeData = [
     { id: '1', name: 'White T-Shirt', category: 'Top', color: 'White', season: 'Summer', imageUrl: 'https://via.placeholder.com/100/FFFFFF/1B1229?text=T-Shirt' },
-    { id: '2', name: 'Blue Jeans', category: 'Bottom', color: 'Blue', season: 'All-Season', imageUrl: 'https://via.placeholder.com/100/3498db/FFFFFF?text=Jeans' },
-    { id: '3', name: 'Black Boots', category: 'Shoes', color: 'Black', season: 'Winter', imageUrl: 'https://via.placeholder.com/100/000000/FFFFFF?text=Boots' },
-    { id: '4', name: 'Red Jacket', category: 'Outerwear', color: 'Red', season: 'Autumn', imageUrl: 'https://via.placeholder.com/100/FF0000/FFFFFF?text=Jacket' },
+    // ... diğer veriler
 ];
 
 /**
- * Simulates uploading an image to a background removal service.
- * @param {string} imageUri The local URI of the image to upload.
- * @returns {Promise<object>} A promise that resolves with an object containing the new URL.
+ * Yapay Zeka Görüntü Analizi
+ */
+export const analyzeImageWithAI = (imageUri) => {
+  console.log('Simulating: Sending image to AI for analysis...', imageUri);
+
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      // AI'ın döndüreceği örnek JSON yanıtı
+      const aiResponse = {
+        category: "Top",
+        season: "Summer",
+        color1: "red",    // constants/options.js içindeki value değerleriyle eşleşmeli
+        color2: "black",  // constants/options.js içindeki value değerleriyle eşleşmeli
+        confidence: 0.95
+      };
+      
+      console.log('Simulating: AI Analysis complete.', aiResponse);
+      resolve({ success: true, data: aiResponse });
+    }, 2000); 
+  });
+};
+
+/**
+ * Arka plan temizleme servisi simülasyonu
  */
 export const uploadImageForBgRemoval = (imageUri) => {
   console.log('Simulating: Uploading image for background removal...', imageUri);
   
   return new Promise((resolve) => {
     setTimeout(() => {
-      // In a real scenario, this URL would come from the backend response.
-      const newImageUrl = `https://via.placeholder.com/300/FFFFFF/000000?text=BG-Removed`;
+      // Gerçekte backend'den dönen, arka planı silinmiş resmin URL'si
+      // Simülasyon olduğu için placeholder dönüyoruz ama 'BG-Removed' yazısı ekliyoruz fark edilmesi için.
+      const newImageUrl = `https://via.placeholder.com/300/FFFFFF/000000?text=Clean-BG-Image`;
       console.log('Simulating: Background removal complete. New URL:', newImageUrl);
       resolve({ success: true, imageUrl: newImageUrl });
-    }, 2000); // Simulate 2 seconds of network and processing time.
+    }, 1500); 
   });
 };
 
 /**
- * Simulates saving the final clothing item data to the backend.
- * @param {object} clothingData The complete data for the clothing item.
- * @returns {Promise<object>} A promise that resolves with a success message.
+ * Kıyafeti veritabanına kaydetme
  */
 export const saveClothingItem = (clothingData) => {
-  console.log('Simulating: Saving clothing item to database...', clothingData);
+  console.log('Simulating: Saving final clothing item to database...', clothingData);
 
   return new Promise((resolve) => {
     setTimeout(() => {
-      console.log('Simulating: Clothing item saved successfully.');
-      // Add the new item to our dummy data for the simulation
       const newItem = {
         id: Math.random().toString(),
-        ...clothingData
+        ...clothingData,
+        // Eski yapı tek 'color' alanı kullanıyordu, uyumluluk için color1'i ana renk yapıyoruz
+        color: clothingData.color1 
       };
       dummyWardrobeData.push(newItem);
       resolve({ success: true, message: 'Item saved successfully!' });
-    }, 1500); // Simulate 1.5 seconds of network time.
+    }, 1000); 
   });
 };
 
-
-/**
- * Simulates fetching all clothing items from the backend.
- * @returns {Promise<object>} A promise that resolves with a list of clothing items.
- */
-export const getClothingItems = () => {
-    console.log('Simulating: Fetching all clothing items...');
+export const updateClothingItem = (updatedItem) => {
+    console.log('Simulating: Updating item...', updatedItem);
     return new Promise((resolve) => {
         setTimeout(() => {
-            console.log('Simulating: Fetched items.', dummyWardrobeData);
+            // Dummy veriyi güncelle
+            const index = dummyWardrobeData.findIndex(item => item.id === updatedItem.id);
+            if (index !== -1) {
+                dummyWardrobeData[index] = { ...dummyWardrobeData[index], ...updatedItem };
+            }
+            resolve({ success: true, message: 'Item updated successfully!' });
+        }, 1000);
+    });
+};
+
+export const deleteClothingItem = (itemId) => {
+    console.log('Simulating: Deleting item...', itemId);
+    return new Promise((resolve) => {
+        setTimeout(() => {
+            // Dummy veriden sil
+            const index = dummyWardrobeData.findIndex(item => item.id === itemId);
+            if (index !== -1) {
+                dummyWardrobeData.splice(index, 1); // Listeden çıkar
+            }
+            resolve({ success: true, message: 'Item deleted successfully!' });
+        }, 1000);
+    });
+};
+
+export const getClothingItems = () => {
+    return new Promise((resolve) => {
+        setTimeout(() => {
             resolve({ success: true, data: dummyWardrobeData });
-        }, 1000); // Simulate 1 second network time
+        }, 1000);
     });
 }
