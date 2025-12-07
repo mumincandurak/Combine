@@ -17,7 +17,8 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
 // API ve Sabitler
-import { analyzeImageWithAI, saveClothingItem, uploadImageForBgRemoval } from '../../api/clothing';
+import { saveClothingItem, uploadImageForBgRemoval } from '../../api/clothing';
+import { analyzeImageWithAI } from '../../api/clothingAnalyze';
 import { COLORS_OPTIONS } from '../../constants/options'; // Renk listesi
 import SelectionModal from '../../components/SelectionModal'; // Seçim Modalı
 
@@ -50,7 +51,7 @@ const AddClothingScreen = ({ navigation }) => {
             setAiResult(response.data);
             
             // AI'dan gelen renk string'ini (örn: 'red') bizim listemizdeki objeye çeviriyoruz
-            const foundColor1 = COLORS_OPTIONS.find(c => c.value === response.data.color1);
+            const foundColor1 = COLORS_OPTIONS.find(c => c.value === response.data.ana_renk);
             const foundColor2 = COLORS_OPTIONS.find(c => c.value === response.data.color2);
 
             setColor1(foundColor1 || null);
@@ -137,7 +138,6 @@ const AddClothingScreen = ({ navigation }) => {
       // 1. Arka planı temizle
       // (Kullanıcıya bilgi veriyoruz)
       Alert.alert("İşleniyor", "Arka plan temizleniyor ve kaydediliyor...", [], { cancelable: false });
-      
       const bgResponse = await uploadImageForBgRemoval(imageUri);
       if (!bgResponse.success) throw new Error("Arka plan temizleme başarısız.");
 
@@ -149,7 +149,7 @@ const AddClothingScreen = ({ navigation }) => {
         name: name,           // Kullanıcının girdiği isim
         color1: color1.value, // Seçilen rengin değeri (örn: 'red')
         color2: color2 ? color2.value : null, 
-        imageUrl: cleanImageUrl // Temizlenmiş resim
+        imageUrl: imageUri // Temizlenmiş resim
       };
 
       console.log("Saving JSON:", finalJson);

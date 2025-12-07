@@ -1,4 +1,51 @@
-// api/clothing.js
+import apiClient from './client';
+import { Buffer } from 'buffer'; // Import Buffer for base64 conversion
+
+/**
+ * Uploads an image to the backend to remove its background.
+ * @param {string} imageUri The URI of the image to process.
+ * @returns {Promise<{success: boolean, imageUrl?: string, message?: string}>}
+ */
+export const uploadImageForBgRemoval = async (imageUri) => {
+  const formData = new FormData();
+  
+  // Extract file name and type from URI
+  const uriParts = imageUri.split('/');
+  const fileName = uriParts[uriParts.length - 1];
+  let fileType;
+  const fileTypeMatch = /\.(\w+)$/.exec(fileName);
+  if (fileTypeMatch) {
+    fileType = `image/${fileTypeMatch[1]}`;
+  } else {
+    fileType = 'image/jpeg'; // Default
+  }
+
+  formData.append('image', {
+    uri: imageUri,
+    name: fileName,
+    type: fileType,
+  });
+
+  try {
+    const response = await apiClient.post('/image/remove-bg', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      responseType: 'arraybuffer', // Important to handle the binary data
+    });
+
+    // Convert the binary data (ArrayBuffer) to a Base64 string
+    const base64 = Buffer.from(response.data, 'binary').toString('base64');
+    const imageUrl = `data:image/png;base64,${base64}`;
+
+    return { success: true, imageUrl };
+  } catch (error) {
+    console.error('Error removing background:', error.response ? error.response.data : error.message);
+    const message = error.response?.data?.message || 'Arka plan temizlenirken bir hata oluştu.';
+    return { success: false, message };
+  }
+};
+
 
 const dummyWardrobeData = [
     { id: '1', name: 'White T-Shirt', category: 'Top', color: 'White', season: 'Summer', imageUrl: 'https://via.placeholder.com/100/FFFFFF/1B1229?text=T-Shirt' },
@@ -6,63 +53,18 @@ const dummyWardrobeData = [
 ];
 
 /**
- * Yapay Zeka Görüntü Analizi
- */
-export const analyzeImageWithAI = (imageUri) => {
-  console.log('Simulating: Sending image to AI for analysis...', imageUri);
-
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // AI'ın döndüreceği örnek JSON yanıtı
-      const aiResponse = {
-        category: "Top",
-        season: "Summer",
-        color1: "red",    // constants/options.js içindeki value değerleriyle eşleşmeli
-        color2: "black",  // constants/options.js içindeki value değerleriyle eşleşmeli
-        confidence: 0.95
-      };
-      
-      console.log('Simulating: AI Analysis complete.', aiResponse);
-      resolve({ success: true, data: aiResponse });
-    }, 2000); 
-  });
-};
-
-/**
- * Arka plan temizleme servisi simülasyonu
- */
-export const uploadImageForBgRemoval = (imageUri) => {
-  console.log('Simulating: Uploading image for background removal...', imageUri);
-  
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // Gerçekte backend'den dönen, arka planı silinmiş resmin URL'si
-      // Simülasyon olduğu için placeholder dönüyoruz ama 'BG-Removed' yazısı ekliyoruz fark edilmesi için.
-      const newImageUrl = `https://via.placeholder.com/300/FFFFFF/000000?text=Clean-BG-Image`;
-      console.log('Simulating: Background removal complete. New URL:', newImageUrl);
-      resolve({ success: true, imageUrl: newImageUrl });
-    }, 1500); 
-  });
-};
-
-/**
  * Kıyafeti veritabanına kaydetme
  */
-export const saveClothingItem = (clothingData) => {
-  console.log('Simulating: Saving final clothing item to database...', clothingData);
-
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const newItem = {
-        id: Math.random().toString(),
-        ...clothingData,
-        // Eski yapı tek 'color' alanı kullanıyordu, uyumluluk için color1'i ana renk yapıyoruz
-        color: clothingData.color1 
-      };
-      dummyWardrobeData.push(newItem);
-      resolve({ success: true, message: 'Item saved successfully!' });
-    }, 1000); 
-  });
+export const saveClothingItem = async (clothingData) => {
+  try {
+    // We assume the backend endpoint is '/clothes' from the file structure
+    const response = await apiClient.post('/clothes', clothingData);
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error('Error saving clothing item:', error.response ? error.response.data : error.message);
+    const message = error.response?.data?.message || 'Kıyafet kaydedilirken bir hata oluştu.';
+    return { success: false, message };
+  }
 };
 
 export const updateClothingItem = (updatedItem) => {
