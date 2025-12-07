@@ -1,122 +1,120 @@
 var express = require('express');
 var router = express.Router();
-var OutfitItems = require('../db/models/OutfitItems'); // Adjust path if necessary
+var ImportantDays = require('../db/models/ImportantDays');
 var response = require("../lib/Response");
 var _enum = require("../config/enum");
 var verifyToken = require("../lib/authToken");
 
-/* GET all outfit items for the logged-in user */
+/* GET: Kullanıcının tüm önemli günlerini listele */
 router.get("/", verifyToken, async (req, res) => {
     try {
-        const items = await OutfitItems.find({ userId: req.user.id });
+        // Kullanıcıya ait günleri getir ve 'occasionId' bilgisini detaylandır (populate)
+        // Eğer Occasions tablon boşsa .populate hata vermez, sadece null döner.
+        const days = await ImportantDays.find({ userId: req.user.id });
 
         return res.status(_enum.HTTP_STATUS.OK).json(
-            response.successResponse(_enum.HTTP_STATUS.OK, items)
+            response.successResponse(_enum.HTTP_STATUS.OK, days)
         );
     } catch (err) {
-        console.error("Error: get outfit items", err);
+        console.error("Error: get important days", err);
         return res.status(_enum.HTTP_STATUS.INTERNAL_SERVER_ERROR).json(
             response.errorResponse(_enum.HTTP_STATUS.INTERNAL_SERVER_ERROR, err.message)
         );
     }
 });
 
-/* POST add a new outfit item (log/rating) */
+/* POST: Yeni bir önemli gün ekle */
 router.post("/add", verifyToken, async (req, res) => {
     try {
-        const { itemId, rating, description, liked } = req.body;
+        const { date, name, occasionId, notes } = req.body;
 
-        // Check required fields based on Schema
-        if (!itemId) {
+        // Zorunlu alan kontrolü (Modelde required olanlar)
+        if (!date || !occasionId) {
             return res.status(_enum.HTTP_STATUS.BAD_REQUEST).json(
                 response.errorResponse(_enum.HTTP_STATUS.BAD_REQUEST, {
-                    message: "Missing required fields",
-                    description: "itemId is required."
+                    message: "Eksik bilgi",
+                    description: "Tarih (date) ve Durum ID (occasionId) zorunludur."
                 })
             );
         }
 
-        const newOutfitItem = new OutfitItems({
-            userId: req.user.id, // From Token
-            itemId,
-            rating,
-            description,
-            liked: liked || false
+        const newDay = new ImportantDays({
+            userId: req.user.id,
+            date,
+            name,
+            occasionId,
+            notes
         });
 
-        const savedItem = await newOutfitItem.save();
+        const savedDay = await newDay.save();
 
         return res.status(_enum.HTTP_STATUS.CREATED).json(
             response.successResponse(_enum.HTTP_STATUS.CREATED, {
-                message: "Outfit item added successfully",
-                item: savedItem
+                message: "Önemli gün başarıyla eklendi",
+                item: savedDay
             })
         );
 
     } catch (err) {
-        console.error("Error: add outfit item", err);
+        console.error("Error: add important day", err);
         return res.status(_enum.HTTP_STATUS.INTERNAL_SERVER_ERROR).json(
             response.errorResponse(_enum.HTTP_STATUS.INTERNAL_SERVER_ERROR, err.message)
         );
     }
 });
 
-/* PUT update an outfit item */
+/* PUT: Önemli günü güncelle */
 router.put("/update/:id", verifyToken, async (req, res) => {
     try {
         const updates = req.body;
 
-        // Security: Ensure the item belongs to the logged-in user
-        const updatedItem = await OutfitItems.findOneAndUpdate(
+        // Güvenlik: Sadece kendi eklediği günü güncelleyebilir
+        const updatedDay = await ImportantDays.findOneAndUpdate(
             { _id: req.params.id, userId: req.user.id },
             updates,
-            { new: true } // Return the updated document
+            { new: true } // Güncel halini döndür
         );
 
-        if (!updatedItem) {
+        if (!updatedDay) {
             return res.status(_enum.HTTP_STATUS.NOT_FOUND).json(
                 response.errorResponse(_enum.HTTP_STATUS.NOT_FOUND, {
-                    message: "Item not found or unauthorized",
-                    description: "Could not find the outfit item to update."
+                    message: "Gün bulunamadı",
+                    description: "Güncellenecek kayıt bulunamadı veya yetkiniz yok."
                 })
             );
         }
 
         return res.status(_enum.HTTP_STATUS.OK).json(
             response.successResponse(_enum.HTTP_STATUS.OK, {
-                message: "Outfit item updated successfully",
-                item: updatedItem
+                message: "Güncellendi",
+                item: updatedDay
             })
         );
 
     } catch (err) {
-        console.error("Error: update outfit item", err);
+        console.error("Error: update important day", err);
         return res.status(_enum.HTTP_STATUS.INTERNAL_SERVER_ERROR).json(
             response.errorResponse(_enum.HTTP_STATUS.INTERNAL_SERVER_ERROR, err.message)
         );
     }
 });
 
-/* DELETE an outfit item */
+/* DELETE: Önemli günü sil */
 router.delete("/delete/:id", verifyToken, async (req, res) => {
     try {
-        // Security: Ensure the item belongs to the logged-in user
-        const deletedItem = await OutfitItems.findOneAndDelete({
+        const deletedDay = await ImportantDays.findOneAndDelete({
             _id: req.params.id,
             userId: req.user.id
         });
 
-        if (!deletedItem) {
+        if (!deletedDay) {
             return res.status(_enum.HTTP_STATUS.NOT_FOUND).json(
-                response.errorResponse(_enum.HTTP_STATUS.NOT_FOUND, {
-                    message: "Error: delete item",
-                    description: "Item not found or you are not authorized to delete it."
-                })
+                response.errorResponse(_enum.HTTP_STATUS.NOT_FOUND, "Silinecek kayıt bulunamadı")
             );
         }
 
         return res.status(_enum.HTTP_STATUS.OK).json(
-            response.successResponse(_enum.HTTP_STATUS.OK, "Outfit item deleted successfully")
+            response.successResponse(_enum.HTTP_STATUS.OK, "Kayıt başarıyla silindi")
         );
 
     } catch (err) {

@@ -1,27 +1,31 @@
 const mongoose = require('mongoose');
 
 const schema = mongoose.Schema({
-    userId:{
+    userId: {
         type: mongoose.SchemaTypes.ObjectId,
-        required: true
+        required: true,
+        ref: 'Users'
     },
- 
-    rating : Number,
-    comments : String,
-    liked : Boolean
-},{
+    name: { 
+        type: String, 
+        required: true // Kombinin adı olsun (Örn: "Yaz akşamı kombini")
+    },
+    items: [{ 
+        type: mongoose.SchemaTypes.ObjectId, 
+        ref: 'ClothingItems', // ClothingItems tablosuna referans
+        required: true
+    }],
+    description: String,
+    isFavorite: { type: Boolean, default: false }
+}, {
     versionKey: false,
-    timestamps:{
+    timestamps: {
         createdAt: 'createdAt',
         updatedAt: 'updatedAt'
     }
-}
-);
+});
 
-class Outfits extends mongoose.Model {
-
-
-};
+class Outfits extends mongoose.Model {}
 
 schema.loadClass(Outfits);
 

@@ -5,6 +5,9 @@ var ClothingItems = require('../db/models/ClothingItems'); // Model yolunu kontr
 var response = require("../lib/Response");
 var _enum = require("../config/enum");
 var verifyToken = require("../lib/authToken");
+const upload = require("../lib/upload");
+const cloudinary = require("../config/cloudinary");
+
 router.get('/test', (req, res) => {
     res.send("Bağlantı başarılı! Clothes rotasına ulaştın.");
 });
@@ -27,7 +30,7 @@ router.get("/", verifyToken, async (req, res) => {
 });
 
 /* POST add a new cloth */
-router.post("/add", verifyToken, async (req, res) => {
+router.post("/add", verifyToken, upload.single("image"), async (req, res) => {
     try {
         const {
             name,
@@ -37,21 +40,45 @@ router.post("/add", verifyToken, async (req, res) => {
             description,
             size,
             color,
-            imageUrl,
             material,
             brand,
             season,
             tempratureRange
         } = req.body;
+        console.log(req.file);
+        console.log(req.body);
 
         // Zorunlu alan kontrolü (Modelde required olanlar)
-        if (!name || !category || !subCategory || !occasionId) {
+        if (!name || !category || !color || !occasionId || !season) {
             return res.status(_enum.HTTP_STATUS.BAD_REQUEST).json(
                 response.errorResponse(_enum.HTTP_STATUS.BAD_REQUEST, {
                     message: "Missing required fields",
-                    description: "Name, Category, SubCategory, and OccasionId are required."
+                    description: "Name, Category, SubCategory, Season and OccasionId are required."
                 })
             );
+        }
+
+        let imageUrl = null;
+        let imagePublicId = null;
+
+        if (!req.file) {
+            return response.errorResponse(_enum.HTTP_STATUS.BAD_REQUEST, {
+                message: "missing required fields",
+                description: "photo is required"
+            })
+        } else {
+            const cloudinaryUpload = await new Promise((resolve, reject) => {
+                cloudinary.uploader.upload_stream(
+                    { folder: "CombineApp" },
+                    (error, result) => {
+                        if (error) reject(error);
+                        else resolve(result);
+                    }
+                ).end(req.file.buffer);
+            });
+
+            imageUrl = cloudinaryUpload.secure_url;
+            imagePublicId = cloudinaryUpload.public_id
         }
 
         const newCloth = new ClothingItems({
@@ -64,6 +91,7 @@ router.post("/add", verifyToken, async (req, res) => {
             size,
             color,
             imageUrl,
+            imagePublicId,
             material,
             brand,
             season,
@@ -127,12 +155,19 @@ router.put("/update/:id", verifyToken, async (req, res) => {
 
 /* DELETE a cloth */
 router.delete("/delete/:id", verifyToken, async (req, res) => {
+    console.log("User ID:", req.user.id);
+    console.log("Param ID:", req.params.id);
     try {
         // Güvenlik: Sadece kendi eklediği kıyafeti silebilir
         const deletedCloth = await ClothingItems.findOneAndDelete({
             _id: req.params.id,
             userId: req.user.id
         });
+
+
+        if (deletedCloth.imagePublicId) {
+            await cloudinary.uploader.destroy(deletedCloth.imagePublicId);
+        }
 
         if (!deletedCloth) {
             return res.status(_enum.HTTP_STATUS.NOT_FOUND).json(

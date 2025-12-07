@@ -7,7 +7,8 @@ import {
     FlatList,
     TouchableOpacity,
     Alert,
-    ActivityIndicator
+    ActivityIndicator,
+    Dimensions // YENİ: Ekran genişliği hesapları için
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -22,19 +23,18 @@ import { CATEGORIES, COLORS_OPTIONS, SEASONS } from '../../constants/options';
 
 const WardrobeScreen = ({ navigation }) => {
     // --- STATE ---
-    const [clothes, setClothes] = useState([]);           // Tüm kıyafetlerin ham listesi
-    const [loading, setLoading] = useState(true);         // Yükleniyor mu?
+    const [clothes, setClothes] = useState([]);           
+    const [loading, setLoading] = useState(true);         
     
     // Arama ve Filtreleme State'leri
-    const [searchQuery, setSearchQuery] = useState('');           // Arama kutusundaki metin
-    const [filteredClothes, setFilteredClothes] = useState([]);   // Ekranda gösterilen (filtrelenmiş) liste
-    const [filtersVisible, setFiltersVisible] = useState(false);  // Filtre butonları açık mı?
+    const [searchQuery, setSearchQuery] = useState('');           
+    const [filteredClothes, setFilteredClothes] = useState([]);   
+    const [filtersVisible, setFiltersVisible] = useState(false);  
     
-    // Seçili Filtreler (null ise hepsi gösterilir)
     const [selectedCategory, setSelectedCategory] = useState(null);
     const [selectedColor, setSelectedColor] = useState(null);
     const [selectedSeason, setSelectedSeason] = useState(null);
-    const [isAnyFilterActive, setIsAnyFilterActive] = useState(false); // "Hiç sonuç yok" mesajını doğru göstermek için
+    const [isAnyFilterActive, setIsAnyFilterActive] = useState(false);
 
     // Modal State
     const [detailModalVisible, setDetailModalVisible] = useState(false);
@@ -43,15 +43,32 @@ const WardrobeScreen = ({ navigation }) => {
     const [isColorModalVisible, setColorModalVisible] = useState(false);
     const [isSeasonModalVisible, setSeasonModalVisible] = useState(false);
 
+    // --- YENİ FONKSİYON: Listeyi Çift Sayıya Tamamlama ---
+    // Bu fonksiyon, liste tek sayıdaysa sonuna görünmez bir eleman ekler.
+    const formatData = (dataList, numColumns) => {
+        if (!dataList) return [];
+        
+        const totalRows = Math.floor(dataList.length / numColumns);
+        let totalLastRow = dataList.length - (totalRows * numColumns);
+
+        // Eğer son satırda eksik eleman varsa (tek sayıysa)
+        if (totalLastRow !== 0 && totalLastRow !== numColumns) {
+            // Orijinal diziyi bozmamak için kopyasını alıp ekleme yapıyoruz
+            const newData = [...dataList];
+            newData.push({ id: 'blank-item', empty: true });
+            return newData;
+        }
+        return dataList;
+    };
+
     // --- VERİ ÇEKME ---
     const fetchClothes = useCallback(async () => {
         setLoading(true);
         try {
-            // API'den tüm kıyafetleri çekiyoruz
             const response = await clothingApi.getClothingItems();
             if (response && Array.isArray(response.data)) {
-                setClothes(response.data);          // Ham veriyi sakla
-                setFilteredClothes(response.data);  // Başlangıçta filtrelenmiş veri de aynıdır
+                setClothes(response.data);          
+                setFilteredClothes(response.data);  
             } else {
                 Alert.alert("Hata", "Kıyafetler yüklenemedi.");
                 setClothes([]);
@@ -64,49 +81,41 @@ const WardrobeScreen = ({ navigation }) => {
         }
     }, []);
 
-    // Ekran her odaklandığında (Geri dönüldüğünde vs.) veriyi yenile
     useFocusEffect(
         useCallback(() => {
             fetchClothes();
         }, [fetchClothes])
     );
 
-    // --- FİLTRELEME MANTIĞI (En Önemli Kısım) ---
-    // clothes, searchQuery veya filtrelerden herhangi biri değiştiğinde bu blok çalışır.
+    // --- FİLTRELEME MANTIĞI ---
     useEffect(() => {
-        let result = clothes; // İşleme ham liste ile başla
+        let result = clothes; 
 
-        // Filtre aktif mi kontrolü
         const anyFilterActive = searchQuery || selectedCategory || selectedColor || selectedSeason;
         setIsAnyFilterActive(anyFilterActive);
 
-        // 1. Adım: Arama metni varsa isme göre filtrele
         if (searchQuery) {
             result = result.filter(item =>
                 item.name && item.name.toLowerCase().includes(searchQuery.toLowerCase())
             );
         }
-        // 2. Adım: Kategori seçiliyse filtrele
         if (selectedCategory) {
             const categoryLabel = CATEGORIES.find(c => c.value === selectedCategory)?.label;
             result = result.filter(item => item.category === categoryLabel);
         }
-        // 3. Adım: Renk seçiliyse filtrele
         if (selectedColor) {
             const colorLabel = COLORS_OPTIONS.find(c => c.value === selectedColor)?.label;
-            result = result.filter(item => item.color === colorLabel);
+            result = result.filter(item => item.color === colorLabel || item.color1 === selectedColor); 
         }
-        // 4. Adım: Mevsim seçiliyse filtrele
         if (selectedSeason) {
             const seasonLabel = SEASONS.find(s => s.value === selectedSeason)?.label;
             result = result.filter(item => item.season === seasonLabel);
         }
 
-        // Sonucu ekrana yansıtılacak state'e ata
         setFilteredClothes(result);
     }, [clothes, searchQuery, selectedCategory, selectedColor, selectedSeason]);
 
-    // --- HANDLERS (Olay Yönetimi) ---
+    // --- HANDLERS ---
     const handleCardLongPress = (item) => {
         setSelectedItem(item);
         setDetailModalVisible(true);
@@ -118,7 +127,6 @@ const WardrobeScreen = ({ navigation }) => {
     };
     
     const handleClearFilters = () => {
-        // Tüm filtreleri sıfırla
         setSelectedCategory(null);
         setSelectedColor(null);
         setSelectedSeason(null);
@@ -140,17 +148,29 @@ const WardrobeScreen = ({ navigation }) => {
 
     const handleAddPhoto = () => navigation.navigate('AddClothing');
 
-    // --- RENDER YARDIMCILARI ---
-    const renderItem = ({ item }) => (
-        <ClothingCard 
-            item={item}
-            onCardLongPress={() => handleCardLongPress(item)}
-        />
-    );
+    // --- RENDER ITEM GÜNCELLEMESİ ---
+    const renderItem = ({ item }) => {
+        // Eğer bu eleman bizim eklediğimiz boş elemansa, görünmez bir kutu çiz
+        if (item.empty === true) {
+            return <View style={[styles.itemInvisible, { flex: 1, margin: 8 }]} />;
+        }
+        
+        return (
+            <ClothingCard 
+                item={item}
+                onCardLongPress={() => handleCardLongPress(item)}
+            />
+        );
+    };
 
     const getButtonText = (options, value) => {
         if (!value) return null;
         return options.find(opt => opt.value === value)?.label;
+    };
+
+    const handleUpdateTrigger = () => {
+        console.log("Liste güncelleniyor...");
+        fetchClothes(); // Listeyi sunucudan/dummydatan tekrar çek
     };
 
     return (
@@ -193,7 +213,8 @@ const WardrobeScreen = ({ navigation }) => {
                     <ActivityIndicator size="large" color={COLORS.primary} style={{ flex: 1 }} />
                 ) : (
                     <FlatList
-                        data={filteredClothes}
+                        // YENİ: formatData fonksiyonunu burada kullanıyoruz
+                        data={formatData(filteredClothes, 2)}
                         renderItem={renderItem}
                         keyExtractor={(item, index) => item.id?.toString() || index.toString()}
                         numColumns={2}
@@ -225,6 +246,7 @@ const WardrobeScreen = ({ navigation }) => {
                     visible={detailModalVisible}
                     item={selectedItem}
                     onClose={handleCloseDetailModal}
+                    onUpdateTrigger={handleUpdateTrigger}
                 />
                 
                 <SelectionModal
@@ -310,7 +332,7 @@ const styles = StyleSheet.create({
         fontSize: 14,
     },
     clearButton: {
-        backgroundColor: '#E74C3C', // Kırmızı
+        backgroundColor: '#E74C3C', 
         borderRadius: 20,
         paddingVertical: 8,
         paddingHorizontal: 15,
@@ -324,6 +346,10 @@ const styles = StyleSheet.create({
     list: {
         flex: 1,
         paddingHorizontal: 5,
+    },
+    // YENİ: Görünmez kutu stili
+    itemInvisible: {
+        backgroundColor: 'transparent',
     },
     fab: {
         position: 'absolute',

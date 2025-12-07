@@ -8,6 +8,7 @@ var bcrypt = require("bcrypt")
 var jwt = require("jsonwebtoken");
 var verifyToken = require("../lib/authToken");
 
+/* 1. SIGNUP (KAYIT OL) */
 router.post("/signup", async (req, res) => {
   try {
     const user = req.body;
@@ -38,7 +39,11 @@ router.post("/signup", async (req, res) => {
       const saltrounds = 10;
       const hashedPassword = await bcrypt.hash(user.passwordHash, saltrounds);
       user.passwordHash = hashedPassword;
+      
+      // Not: Eğer frontend kayıt sırasında favoriteColors veya stylePreferences 
+      // gönderirse, User.create(user) bunları da otomatik kaydeder.
       const userdata = await User.create(user);
+      
       console.log("yeni kullanıcı", userdata);
       const successResponse = response.successResponse(_enum.HTTP_STATUS.CREATED, {
         message: "user added succesfully",
@@ -53,6 +58,7 @@ router.post("/signup", async (req, res) => {
   }
 });
 
+/* 2. LOGIN (GİRİŞ YAP) */
 router.post("/login", async (req, res) => {
   try {
     const { email, passwordHash } = req.body;
@@ -65,13 +71,11 @@ router.post("/login", async (req, res) => {
     }
 
     if (!email.includes("@")) {
-      console.log("ben buraya girdim")
       return res.status(400).json(response.errorResponse(_enum.HTTP_STATUS.BAD_REQUEST, {
         message: "Invalid email",
         description: "Email must contain '@'"
       }));
     }
-
 
     const check = await User.findOne({ email });
     if (!check) {
@@ -79,14 +83,9 @@ router.post("/login", async (req, res) => {
         _enum.HTTP_STATUS.NOT_FOUND, {
         message: "user not found",
         description: "email or password wrong"
-      }
-
-      );
+      });
       return res.status(_enum.HTTP_STATUS.NOT_FOUND).json(errorResponse);
     }
-
-    
-
 
     const isCorrectPassword = await bcrypt.compare(passwordHash, check.passwordHash);
     if (!isCorrectPassword) {
@@ -94,12 +93,9 @@ router.post("/login", async (req, res) => {
         _enum.HTTP_STATUS.UNAUTHORIZED, {
         message: "Error: email or password wrong",
         description: "email or password wrong"
-      }
-
-      );
+      });
       return res.status(_enum.HTTP_STATUS.UNAUTHORIZED).json(errorResponse);
     }
-
 
     const token = jwt.sign(
       {
@@ -111,12 +107,15 @@ router.post("/login", async (req, res) => {
       { expiresIn: "1h" }
     );
 
+    // GÜNCELLEME: Login olduğunda kullanıcının tercihlerini de response'a ekledim.
     const successResponse = response.successResponse(_enum.HTTP_STATUS.OK, {
       message: "Login successful",
       user: {
         id: check._id,
         email: check.email,
         userName: check.userName,
+        favoriteColors: check.favoriteColors, // Yeni eklenen alan
+        stylePreferences: check.stylePreferences // Yeni eklenen alan
       },
       token,
     });
@@ -132,6 +131,11 @@ router.post("/login", async (req, res) => {
   }
 });
 
+
+
+
+
+/* 4. SİLME İŞLEMİ */
 router.delete("/delete/:id", verifyToken, async (req, res) => {
   try {
     const deletedUser = await User.findByIdAndDelete(req.params.id);

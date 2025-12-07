@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from "react";
+import React, { useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -7,6 +7,10 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
+  Modal, // Added
+  TextInput, // Added
+  KeyboardAvoidingView, // Added
+  Platform, // Added
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -17,7 +21,6 @@ import { COLORS } from "../../colors";
 // Helper for Mock Images
 const MOCK_IMG = "https://via.placeholder.com/150";
 
-// Updated Mock Data with 'outfitItems' so the "Favorites" tab isn't empty when expanded
 const INITIAL_FAVORITES = [
   {
     id: "1",
@@ -48,7 +51,7 @@ const INITIAL_CUSTOM = [
     name: "My Birthday Look",
     date: "Oct 20",
     items: 5,
-    outfitItems: [], // Empty for mock, but real ones will have data
+    outfitItems: [],
   },
 ];
 
@@ -56,9 +59,12 @@ const OutfitScreen = ({ navigation, route }) => {
   const [activeTab, setActiveTab] = useState("favorites");
   const [customOutfits, setCustomOutfits] = useState(INITIAL_CUSTOM);
   const [favoriteOutfits, setFavoriteOutfits] = useState(INITIAL_FAVORITES);
-
-  // Track which card is currently open
   const [expandedId, setExpandedId] = useState(null);
+
+  // --- RENAME STATE ---
+  const [isRenameModalVisible, setRenameModalVisible] = useState(false);
+  const [itemToRename, setItemToRename] = useState(null);
+  const [newNameText, setNewNameText] = useState("");
 
   // --- LISTENING FOR NEW OUTFITS ---
   useFocusEffect(
@@ -67,10 +73,7 @@ const OutfitScreen = ({ navigation, route }) => {
         const newOutfit = route.params.newOutfit;
         setCustomOutfits((prev) => [newOutfit, ...prev]);
         setActiveTab("custom");
-
-        // Automatically expand the new outfit so the user sees it immediately
         setExpandedId(newOutfit.id);
-
         navigation.setParams({ newOutfit: null });
       }
     }, [route.params?.newOutfit]),
@@ -84,8 +87,33 @@ const OutfitScreen = ({ navigation, route }) => {
   };
 
   const toggleExpand = (id) => {
-    // If clicking the same one, close it. If clicking a new one, open it.
     setExpandedId((prev) => (prev === id ? null : id));
+  };
+
+  // --- RENAME LOGIC ---
+  const openRenameModal = (item) => {
+    setItemToRename(item);
+    setNewNameText(item.name); // Pre-fill with current name
+    setRenameModalVisible(true);
+  };
+
+  const handleSaveRename = () => {
+    if (!itemToRename || !newNameText.trim()) {
+      setRenameModalVisible(false);
+      return;
+    }
+
+    const updateList = (list) =>
+      list.map((item) =>
+        item.id === itemToRename.id ? { ...item, name: newNameText } : item,
+      );
+
+    // Try to update both lists (since we don't strictly know which one it came from without checking)
+    setFavoriteOutfits((prev) => updateList(prev));
+    setCustomOutfits((prev) => updateList(prev));
+
+    setRenameModalVisible(false);
+    setItemToRename(null);
   };
 
   const renderOutfitItem = ({ item }) => {
@@ -97,7 +125,7 @@ const OutfitScreen = ({ navigation, route }) => {
         activeOpacity={0.9}
         onPress={() => toggleExpand(item.id)}
       >
-        {/* HEADER (Always Visible) */}
+        {/* HEADER */}
         <View style={styles.cardHeader}>
           <View style={styles.cardImageContainer}>
             <Ionicons
@@ -106,13 +134,30 @@ const OutfitScreen = ({ navigation, route }) => {
               color={COLORS.secondaryText}
             />
           </View>
+
           <View style={styles.cardInfo}>
-            <Text style={styles.cardTitle}>{item.name}</Text>
+            {/* Title Row with Edit Pencil */}
+            <View style={{ flexDirection: "row", alignItems: "center" }}>
+              <Text style={styles.cardTitle}>{item.name}</Text>
+
+              {/* RENAME BUTTON */}
+              <TouchableOpacity
+                style={styles.renameIconArea}
+                onPress={(e) => {
+                  e.stopPropagation(); // Prevent card from expanding when clicking pencil
+                  openRenameModal(item);
+                }}
+              >
+                <Ionicons name="pencil" size={16} color={COLORS.gray} />
+              </TouchableOpacity>
+            </View>
+
             <View style={styles.cardMetaContainer}>
               <Text style={styles.cardDate}>{item.date}</Text>
               <Text style={styles.cardItemCount}>{item.items} Items</Text>
             </View>
           </View>
+
           <Ionicons
             name={isExpanded ? "chevron-up" : "chevron-down"}
             size={20}
@@ -120,7 +165,7 @@ const OutfitScreen = ({ navigation, route }) => {
           />
         </View>
 
-        {/* BODY (Visible only when Expanded) */}
+        {/* BODY */}
         {isExpanded && (
           <View style={styles.cardBody}>
             <View style={styles.divider} />
@@ -140,7 +185,6 @@ const OutfitScreen = ({ navigation, route }) => {
                         style={styles.clothingImage}
                       />
                     ) : (
-                      // Fallback Icon
                       <Ionicons
                         name="shirt"
                         size={24}
@@ -216,6 +260,48 @@ const OutfitScreen = ({ navigation, route }) => {
         <TouchableOpacity style={styles.fab} onPress={handleCreateOutfit}>
           <Ionicons name="add" size={32} color={COLORS.white} />
         </TouchableOpacity>
+
+        {/* --- RENAME MODAL --- */}
+        <Modal
+          animationType="fade"
+          transparent={true}
+          visible={isRenameModalVisible}
+          onRequestClose={() => setRenameModalVisible(false)}
+        >
+          <KeyboardAvoidingView
+            behavior={Platform.OS === "ios" ? "padding" : "height"}
+            style={styles.modalOverlay}
+          >
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Rename Outfit</Text>
+              <TextInput
+                style={styles.modalInput}
+                value={newNameText}
+                onChangeText={setNewNameText}
+                autoFocus={true}
+                selectTextOnFocus={true}
+              />
+              <View style={styles.modalButtons}>
+                <TouchableOpacity
+                  style={[styles.modalBtn, styles.modalBtnCancel]}
+                  onPress={() => setRenameModalVisible(false)}
+                >
+                  <Text style={styles.modalBtnText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalBtn, styles.modalBtnSave]}
+                  onPress={handleSaveRename}
+                >
+                  <Text
+                    style={[styles.modalBtnText, { color: COLORS.primaryText }]}
+                  >
+                    Save
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
       </SafeAreaView>
     </LinearGradient>
   );
@@ -243,16 +329,14 @@ const styles = StyleSheet.create({
   activeTabText: { color: COLORS.primaryText },
   listContent: { paddingHorizontal: 20, paddingBottom: 100 },
 
-  // --- CARD STYLES (UPDATED) ---
+  // --- CARD STYLES ---
   cardContainer: {
     backgroundColor: COLORS.card,
     borderRadius: 16,
     marginBottom: 12,
     padding: 12,
-    // Removed flexDirection: 'row' so it can grow vertically
     flexDirection: "column",
   },
-  // New Header style for the top part of the card
   cardHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -273,11 +357,15 @@ const styles = StyleSheet.create({
     color: COLORS.textPrimary,
     marginBottom: 4,
   },
+  renameIconArea: {
+    padding: 5,
+    marginLeft: 5,
+  },
   cardMetaContainer: { flexDirection: "row" },
   cardDate: { fontSize: 12, color: COLORS.textSecondary, marginRight: 10 },
   cardItemCount: { fontSize: 12, color: COLORS.primary, fontWeight: "600" },
 
-  // --- EXPANDED BODY STYLES ---
+  // --- EXPANDED BODY ---
   cardBody: {
     marginTop: 10,
   },
@@ -294,7 +382,7 @@ const styles = StyleSheet.create({
   clothingItemBox: {
     width: 60,
     height: 60,
-    backgroundColor: COLORS.gradient[0], // Dark background for item
+    backgroundColor: COLORS.gradient[0],
     borderRadius: 8,
     marginRight: 10,
     justifyContent: "center",
@@ -328,6 +416,61 @@ const styles = StyleSheet.create({
   },
   emptyContainer: { marginTop: 50, alignItems: "center" },
   emptyText: { color: COLORS.gray, fontSize: 16 },
+
+  // --- MODAL STYLES ---
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    width: "80%",
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: COLORS.secondary,
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: COLORS.textPrimary,
+    marginBottom: 15,
+    textAlign: "center",
+  },
+  modalInput: {
+    backgroundColor: COLORS.gradient[0], // Darker input bg
+    color: COLORS.textPrimary,
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: COLORS.gray,
+  },
+  modalButtons: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+  },
+  modalBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+    marginHorizontal: 5,
+  },
+  modalBtnCancel: {
+    backgroundColor: "transparent",
+    borderWidth: 1,
+    borderColor: COLORS.gray,
+  },
+  modalBtnSave: {
+    backgroundColor: COLORS.primary,
+  },
+  modalBtnText: {
+    color: COLORS.textPrimary,
+    fontWeight: "600",
+  },
 });
 
 export default OutfitScreen;
