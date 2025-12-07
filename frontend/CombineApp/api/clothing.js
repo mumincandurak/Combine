@@ -1,6 +1,58 @@
-// api/clothing.js
+import apiClient from "./client";
+import { Buffer } from "buffer"; // Import Buffer for base64 conversion
 
-// [RESOLUTION]: Kept HEAD because it has the full list of 4 items
+/**
+ * Uploads an image to the backend to remove its background.
+ * @param {string} imageUri The URI of the image to process.
+ * @returns {Promise<{success: boolean, imageUrl?: string, message?: string}>}
+ */
+export const uploadImageForBgRemoval = async (imageUri) => {
+  const formData = new FormData();
+
+  // Extract file name and type from URI
+  const uriParts = imageUri.split("/");
+  const fileName = uriParts[uriParts.length - 1];
+  let fileType;
+  const fileTypeMatch = /\.(\w+)$/.exec(fileName);
+  if (fileTypeMatch) {
+    fileType = `image/${fileTypeMatch[1]}`;
+  } else {
+    fileType = "image/jpeg"; // Default
+  }
+
+  formData.append("image", {
+    uri: imageUri,
+    name: fileName,
+    type: fileType,
+  });
+
+  try {
+    const response = await apiClient.post("/image/remove-bg", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+      responseType: "arraybuffer", // Important to handle the binary data
+    });
+
+    // Convert the binary data (ArrayBuffer) to a Base64 string
+    const base64 = Buffer.from(response.data, "binary").toString("base64");
+    const imageUrl = `data:image/png;base64,${base64}`;
+
+    return { success: true, imageUrl };
+  } catch (error) {
+    console.error(
+      "Error removing background:",
+      error.response ? error.response.data : error.message,
+    );
+    const message =
+      error.response?.data?.message ||
+      "Arka plan temizlenirken bir hata oluştu.";
+    return { success: false, message };
+  }
+};
+
+// [NOTE]: We are keeping this dummy data for now because 'getClothingItems'
+// at the bottom still depends on it.
 const dummyWardrobeData = [
   {
     id: "1",
@@ -38,6 +90,7 @@ const dummyWardrobeData = [
 
 /**
  * Yapay Zeka Görüntü Analizi
+ * [RESOLUTION]: Kept simulated version because no backend endpoint exists for this yet.
  */
 export const analyzeImageWithAI = (imageUri) => {
   console.log("Simulating: Sending image to AI for analysis...", imageUri);
@@ -59,54 +112,33 @@ export const analyzeImageWithAI = (imageUri) => {
   });
 };
 
-/**
- * Arka plan temizleme servisi simülasyonu
- */
-export const uploadImageForBgRemoval = (imageUri) => {
-  console.log(
-    "Simulating: Uploading image for background removal...",
-    imageUri,
-  );
-
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      // [RESOLUTION]: Kept HEAD version (English) for consistency
-      // In a real scenario, this URL would come from the backend response.
-      const newImageUrl = `https://via.placeholder.com/300/FFFFFF/000000?text=BG-Removed`;
-      console.log(
-        "Simulating: Background removal complete. New URL:",
-        newImageUrl,
-      );
-      resolve({ success: true, imageUrl: newImageUrl });
-    }, 1500);
-  });
-};
+// [RESOLUTION]: Removed duplicate 'uploadImageForBgRemoval' here.
+// We are using the Real one defined at the top of the file.
 
 /**
  * Kıyafeti veritabanına kaydetme
+ * [RESOLUTION]: Used the Remote (Real) version to connect to the backend.
  */
-export const saveClothingItem = (clothingData) => {
-  // [RESOLUTION]: Used Remote version here because it handles 'color1' mapping
-  console.log(
-    "Simulating: Saving final clothing item to database...",
-    clothingData,
-  );
-
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const newItem = {
-        id: Math.random().toString(),
-        ...clothingData,
-        // Eski yapı tek 'color' alanı kullanıyordu, uyumluluk için color1'i ana renk yapıyoruz
-        color: clothingData.color1,
-      };
-      dummyWardrobeData.push(newItem);
-      resolve({ success: true, message: "Item saved successfully!" });
-    }, 1000);
-  });
+export const saveClothingItem = async (clothingData) => {
+  try {
+    // We assume the backend endpoint is '/clothes' from the file structure
+    const response = await apiClient.post("/clothes", clothingData);
+    return { success: true, data: response.data };
+  } catch (error) {
+    console.error(
+      "Error saving clothing item:",
+      error.response ? error.response.data : error.message,
+    );
+    const message =
+      error.response?.data?.message || "Kıyafet kaydedilirken bir hata oluştu.";
+    return { success: false, message };
+  }
 };
 
-// [RESOLUTION]: Added these new functions from Remote (missing in local)
+// [WARNING]: The functions below are still SIMULATED.
+// If you save an item using the real function above, it will NOT appear
+// in 'getClothingItems' below until you convert these to real API calls too.
+
 export const updateClothingItem = (updatedItem) => {
   console.log("Simulating: Updating item...", updatedItem);
   return new Promise((resolve) => {

@@ -11,12 +11,15 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@google/genai": "^1.31.0",
+    "@google/generative-ai": "^0.24.1",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-navigation/bottom-tabs": "^7.8.2",
     "@react-navigation/native": "^7.1.19",
     "@react-navigation/stack": "^7.6.7",
     "axios": "^1.6.8",
     "expo": "^54.0.25",
+    "expo-file-system": "~19.0.20",
     "expo-image-picker": "~17.0.8",
     "expo-linear-gradient": "~15.0.7",
     "expo-location": "~19.0.7",
