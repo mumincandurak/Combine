@@ -257,7 +257,12 @@ const OutfitScreen = ({ navigation, route }) => {
           }
         />
 
-        <TouchableOpacity style={styles.fab} onPress={handleCreateOutfit}>
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={handleCreateOutfit}
+          activeOpacity={0.8}
+          hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+        >
           <Ionicons name="add" size={32} color={COLORS.white} />
         </TouchableOpacity>
 
@@ -404,7 +409,7 @@ const styles = StyleSheet.create({
 
   fab: {
     position: "absolute",
-    bottom: 20,
+    bottom: 15,
     right: 20,
     width: 60,
     height: 60,
@@ -413,6 +418,14 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     elevation: 8,
+    zIndex: 1000,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 4.65,
   },
   emptyContainer: { marginTop: 50, alignItems: "center" },
   emptyText: { color: COLORS.gray, fontSize: 16 },
