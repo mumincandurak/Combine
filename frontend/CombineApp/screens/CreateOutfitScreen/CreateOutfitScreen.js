@@ -253,6 +253,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 15,
     alignItems: "center",
+	marginBottom: 30,//save outfit button çakışmasını önlemek için margin bottom ekledim
   },
   saveButtonText: {
     color: COLORS.primaryText,
