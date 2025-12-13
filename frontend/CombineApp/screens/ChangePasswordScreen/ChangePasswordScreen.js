@@ -282,7 +282,7 @@ const styles = StyleSheet.create({
     scrollContent: {
         flexGrow: 1,
         padding: 20,
-        justifyContent: "flex-start",
+        justifyContent: "center",
     },
     title: {
         fontSize: 28,
@@ -290,11 +290,13 @@ const styles = StyleSheet.create({
         color: COLORS.primary,
         marginBottom: 10,
         marginTop: 10,
+        textAlign: "center",
     },
     subtitle: {
         fontSize: 16,
         color: "#999090ff",
         marginBottom: 40,
+        textAlign: "center",
     },
     inputWrapper: {
         position: 'relative',
