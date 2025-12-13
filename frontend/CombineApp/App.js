@@ -93,20 +93,17 @@ function MainTabs() {
           backgroundColor: COLORS.primary,
           borderTopWidth: 0,
           elevation: 0,
-          paddingTop: 0, // üst boşluğu kaldır
-          paddingBottom: 4,
-          height: 40,
+          paddingTop: 10, 
+          paddingBottom: 80,
+          height: 90, 
           marginTop: 0,
         },
         tabBarItemStyle: {
-          paddingTop: 0,
-          paddingBottom: 0,
-          margin: 0,
-          alignItems: "center",
           justifyContent: "center",
+          alignItems: "center",
         },
 
-        headerShown: false, // Varsayılan olarak başlıkları gizle (Home için gerekli)
+        headerShown: false, 
       }}
     >
       <Tab.Screen
@@ -114,15 +111,7 @@ function MainTabs() {
         component={HomeScreen}
         options={{
           tabBarIcon: ({ color }) => (
-            <View
-              style={{
-                alignItems: "center",
-                justifyContent: "center",
-                marginTop: -80,
-              }}
-            >
-              <Ionicons name="home" size={24} color={color} />
-            </View>
+            <Ionicons name="home" size={28} color={color} />
           ),
         }}
       />
@@ -131,20 +120,11 @@ function MainTabs() {
         component={WardrobeNavigator}
         options={{
           tabBarIcon: ({ color }) => (
-            <View
-              style={{
-                alignItems: "center",
-                justifyContent: "center",
-                marginTop: -80,
-              }}
-            >
-              <Ionicons name="cut-outline" size={24} color={color} />
-            </View>
+            <Ionicons name="cut-outline" size={28} color={color} />
           ),
         }}
       />
 
-      {}
       <Tab.Screen
         name="Profile"
         component={ProfileScreen}
@@ -153,15 +133,7 @@ function MainTabs() {
           headerShown: true,
           ...darkScreenOptions,
           tabBarIcon: ({ color }) => (
-            <View
-              style={{
-                alignItems: "center",
-                justifyContent: "center",
-                marginTop: -80,
-              }}
-            >
-              <Ionicons name="person-outline" size={24} color={color} />
-            </View>
+            <Ionicons name="person-outline" size={28} color={color} />
           ),
         }}
       />
@@ -169,22 +141,11 @@ function MainTabs() {
         name="Outfits"
         component={OutfitScreen}
         options={{
-          // Using the same header options as Profile so it looks consistent
           title: "My Outfits",
           headerShown: true,
           ...darkScreenOptions,
-
           tabBarIcon: ({ color }) => (
-            <View
-              style={{
-                alignItems: "center",
-                justifyContent: "center",
-                marginTop: -80, // Keeping your custom style
-              }}
-            >
-              {/* 'shirt-outline' represents outfits well, or you could use 'heart-outline' for favorites */}
-              <Ionicons name="shirt-outline" size={24} color={color} />
-            </View>
+             <Ionicons name="shirt-outline" size={28} color={color} />
           ),
         }}
       />
