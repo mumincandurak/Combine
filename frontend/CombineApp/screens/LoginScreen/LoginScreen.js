@@ -93,6 +93,13 @@ const LoginScreen = ({ navigation }) => {
                             secureTextEntry={true} // Şifreyi gizle (***)
                         />
 
+                        <TouchableOpacity 
+                            onPress={() => navigation.navigate("ForgotPassword")}
+                            style={{ alignSelf: 'flex-end', marginBottom: 15 }}
+                        >
+                             <Text style={{ color: COLORS.primary, fontWeight: 'bold' }}>Forgot Password?</Text>
+                        </TouchableOpacity>
+
                         {/* Giriş Butonu */}
                         <TouchableOpacity
                             style={styles.button}
