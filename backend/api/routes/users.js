@@ -1,7 +1,7 @@
 var express = require('express');
 var router = express.Router();
 var response = require("../lib/Response")
-var CustemError = require("../lib/CustomError")
+var CustomError = require("../lib/CustomError")
 var _enum = require("../config/enum")
 var User = require("../db/models/Users")
 var bcrypt = require("bcrypt")
@@ -12,6 +12,30 @@ var verifyToken = require("../lib/authToken");
 router.post("/signup", async (req, res) => {
   try {
     const user = req.body;
+    const { email, passwordHash, userName } = user;
+
+    if (!email || !passwordHash || !userName) {
+      return res.status(400).json(response.errorResponse(_enum.HTTP_STATUS.BAD_REQUEST, {
+        message: "Missing fields",
+        description: "Email, password and username are required"
+      }));
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return res.status(400).json(response.errorResponse(_enum.HTTP_STATUS.BAD_REQUEST, {
+            message: "Invalid email format",
+            description: "Please enter a valid email address"
+        }));
+    }
+
+    if (passwordHash.length < 6) {
+        return res.status(400).json(response.errorResponse(_enum.HTTP_STATUS.BAD_REQUEST, {
+            message: "Password too short",
+            description: "Password must be at least 6 characters long"
+        }));
+    }
+
     const existUser = await User.findOne({ email: user.email });
 
     if (existUser) {
@@ -21,27 +45,10 @@ router.post("/signup", async (req, res) => {
       });
       return res.status(_enum.HTTP_STATUS.BAD_REQUEST).json(errorResponse);
     } else {
-
-      if (!user.email || !user.passwordHash) {
-        return res.status(400).json(response.errorResponse(_enum.HTTP_STATUS.BAD_REQUEST, {
-          message: "Email or password missing",
-          description: "Both fields are required"
-        }));
-      }
-
-      if (!user.email.includes("@")) {
-        return res.status(400).json(response.errorResponse(_enum.HTTP_STATUS.BAD_REQUEST, {
-          message: "Invalid email",
-          description: "Email must contain '@'"
-        }));
-      }
-
       const saltrounds = 10;
       const hashedPassword = await bcrypt.hash(user.passwordHash, saltrounds);
       user.passwordHash = hashedPassword;
       
-      // Not: Eğer frontend kayıt sırasında favoriteColors veya stylePreferences 
-      // gönderirse, User.create(user) bunları da otomatik kaydeder.
       const userdata = await User.create(user);
       
       console.log("yeni kullanıcı", userdata);

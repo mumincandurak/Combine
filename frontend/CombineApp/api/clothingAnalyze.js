@@ -1,7 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 
-const API_KEY = "AIzaSyCa9VNMkq2hm_GXTGGieKk9GCNEPUVKkpw"; // Kendi API Key'ini buraya yaz
+const API_KEY = "AIzaSyBnBMcydwUEcI69h_cqvgXR5P91tlK-YOU"; // Kendi API Key'ini buraya yaz
 
 const genAI = new GoogleGenerativeAI(API_KEY);
 
@@ -12,7 +12,7 @@ const complexClothingSchema = {
   description: "Detailed clothing analysis in Turkish",
   type: SchemaType.OBJECT,
   properties: {
-    id: { type: SchemaType.NUMBER, description: "Unique ID (always 1 for single item)" },
+    id: { type: SchemaType.NUMBER, description: "Unique ID" },
     kiyafet_analizi: {
       type: SchemaType.OBJECT,
       properties: {

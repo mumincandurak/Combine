@@ -15,11 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import * as Location from "expo-location";
 import { useAuth } from "../../context/AuthContext";
 import { getWeatherByCoords } from "../../api/weather";
-import {
-    getOutfitSuggestion,
-    likeOutfit,
-    dislikeOutfit,
-} from "../../api/outfits";
+import { generateOutfit, updateOutfitStatus } from "../../api/outfits"; // YENİ
 import ClothingCard from "../../components/ClothingCard";
 import ClothingDetailModal from "../../components/ClothingDetailModal";
 
@@ -53,7 +49,7 @@ const WeatherCard = ({ weather }) => {
 };
 
 const HomeScreen = ({ navigation }) => {
-    const { user, locationUpdated } = useAuth();
+    const { user } = useAuth();
 
     // --- STATE TANIMLAMALARI ---
     const [weather, setWeather] = useState(null);
@@ -80,78 +76,56 @@ const HomeScreen = ({ navigation }) => {
         navigation.navigate("Settings");
     };
 
-    // --- VERİ ÇEKME FONKSİYONU ---
-    const fetchAllData = useCallback(async () => {
-        if (!user) return;
-
+    // --- KOMBİN GETİRME FONKSİYONU ---
+    const fetchOutfit = useCallback(async () => {
+        console.log("fetchOutfit called");
         try {
             setLoading(true);
-
-            // Check permission first (do not prompt here; AuthContext handles prompting on app active)
-            const perm = await Location.getForegroundPermissionsAsync();
-            let coords;
-
-            if (perm.status === "granted") {
-                const location = await Location.getCurrentPositionAsync({});
-                coords = {
-                    latitude: location.coords.latitude,
-                    longitude: location.coords.longitude,
-                };
+            const response = await generateOutfit();
+            console.log("generateOutfit response:", response);
+            if (response.data?.success) {
+                setOutfit(response.data.data);
             } else {
-                // fallback to saved coords in user (set by AuthContext) or default Istanbul coords
-                if (
-                    user?.coords &&
-                    user.coords.latitude &&
-                    user.coords.longitude
-                ) {
-                    coords = { ...user.coords };
-                } else {
-                    coords = { latitude: 41.0082, longitude: 28.9784 }; // default Istanbul
-                    console.log(
-                        "Using fallback/default coordinates for weather:",
-                        coords
-                    );
-                }
-            }
-
-            console.log("Fetching weather for coordinates:", coords);
-
-            const weatherResponse = await getWeatherByCoords(
-                coords.latitude,
-                coords.longitude
-            );
-
-            if (weatherResponse.success) {
-                const current_weather = weatherResponse.data;
-                setWeather(current_weather);
-
-                const outfitResponse = await getOutfitSuggestion({
-                    user,
-                    weather: current_weather,
-                });
-                if (outfitResponse.success) {
-                    setOutfit(outfitResponse.data);
-                } else {
-                    console.warn("Outfit suggestion failed");
-                }
-            } else {
-                console.warn("Weather fetch failed");
+                Alert.alert("Hata", "Yeni bir kombin oluşturulamadı. Lütfen gardırobunuzda yeterli sayıda kıyafet olduğundan emin olun.");
+                console.warn("Outfit generation failed:", response.data?.message);
             }
         } catch (error) {
-            console.error("Veri çekme hatası:", error);
+            console.error("Kombin getirme hatası:", error);
+            Alert.alert("Hata", "Kombin getirilirken bir sorun oluştu.");
         } finally {
             setLoading(false);
         }
+    }, []);
+
+    // --- HAVA DURUMU GETİRME FONKSİYONU ---
+    const fetchWeather = useCallback(async () => {
+        if (!user) return;
+        try {
+            const perm = await Location.getForegroundPermissionsAsync();
+            let coords;
+            if (perm.status === "granted") {
+                const location = await Location.getCurrentPositionAsync({});
+                coords = { latitude: location.coords.latitude, longitude: location.coords.longitude };
+            } else {
+                coords = { latitude: 41.0082, longitude: 28.9784 }; // default Istanbul
+            }
+            const weatherResponse = await getWeatherByCoords(coords.latitude, coords.longitude);
+            if (weatherResponse.success) {
+                setWeather(weatherResponse.data);
+            }
+        } catch (error) {
+            console.error("Hava durumu hatası:", error);
+        }
     }, [user]);
 
-    // --- LIKE İŞLEVİ ---
+    // --- BEĞENME İŞLEVİ ---
     const handleLike = async () => {
         if (!outfit || loading || processingAction) return;
         try {
             setProcessingAction(true);
-            await likeOutfit(outfit);
-            console.log("Kombin Beğenildi:", outfit.id);
-            Alert.alert("Beğenildi!", "Bu tarzı tercihlerine kaydettik.");
+            await updateOutfitStatus(outfit._id, 'worn');
+            Alert.alert("Kaydedildi!", "Bu kombini giydiğini not aldık. Şimdi yeni bir tane gelsin!");
+            fetchOutfit(); // Yeni kombin getir
         } catch (error) {
             console.error("Beğeni hatası:", error);
             Alert.alert("Hata", "İşlem gerçekleştirilemedi.");
@@ -160,17 +134,14 @@ const HomeScreen = ({ navigation }) => {
         }
     };
 
-    // --- DISLIKE İŞLEVİ ---
+    // --- BEĞENMEME İŞLEVİ ---
     const handleDislike = async () => {
         if (!outfit || loading || processingAction) return;
         try {
             setProcessingAction(true);
-            await dislikeOutfit(outfit);
-            console.log("Kombin Beğenilmedi:", outfit.id);
-            Alert.alert(
-                "Not Edildi",
-                "Bu tarz kombinleri daha az göstereceğiz."
-            );
+            await updateOutfitStatus(outfit._id, 'disliked');
+            Alert.alert("Not Edildi", "Bu tarz kombinleri daha az göstereceğiz. İşte yeni bir tane!");
+            fetchOutfit(); // Yeni kombin getir
         } catch (error) {
             console.error("Dislike hatası:", error);
             Alert.alert("Hata", "İşlem gerçekleştirilemedi.");
@@ -182,17 +153,11 @@ const HomeScreen = ({ navigation }) => {
     // Uygulama açılışında veri çek
     useEffect(() => {
         if (user) {
-            fetchAllData();
+            fetchOutfit();
+            fetchWeather();
         }
-    }, [user, fetchAllData]);
+    }, [user, fetchOutfit, fetchWeather]);
 
-    // Konum güncellendiğinde veri çek
-    useEffect(() => {
-        if (user) {
-            console.log("Location updated, refreshing weather and outfit...");
-            fetchAllData();
-        }
-    }, [locationUpdated, user, fetchAllData]);
 
     return (
         <LinearGradient colors={COLORS.gradient} style={styles.gradient}>
@@ -237,7 +202,7 @@ const HomeScreen = ({ navigation }) => {
                         ) : (
                             <View style={styles.grid}>
                                 {outfit.items.map((item) => (
-                                    <View style={styles.gridItem} key={item.id}>
+                                    <View style={styles.gridItem} key={item._id}>
                                         <ClothingCard
                                             item={item}
                                             onCardLongPress={() =>
@@ -261,7 +226,7 @@ const HomeScreen = ({ navigation }) => {
                             disabled={loading || processingAction}
                         >
                             <Ionicons
-                                name="thumbs-up-outline"
+                                name="checkmark-done-outline"
                                 size={24}
                                 color={
                                     loading || processingAction
@@ -277,7 +242,7 @@ const HomeScreen = ({ navigation }) => {
                                 (loading || processingAction) &&
                                     styles.disabledButton,
                             ]}
-                            onPress={fetchAllData}
+                            onPress={fetchOutfit}
                             disabled={loading || processingAction}
                         >
                             <Ionicons
@@ -317,8 +282,6 @@ const HomeScreen = ({ navigation }) => {
                     visible={detailModalVisible}
                     item={selectedItem}
                     onClose={handleCloseDetailModal}
-                    season={outfit?.season}
-                    colors={outfit?.colors}
                 />
             </SafeAreaView>
         </LinearGradient>

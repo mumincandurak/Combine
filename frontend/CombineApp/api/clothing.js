@@ -120,17 +120,68 @@ export const analyzeImageWithAI = (imageUri) => {
  * [RESOLUTION]: Used the Remote (Real) version to connect to the backend.
  */
 export const saveClothingItem = async (clothingData) => {
+  const formData = new FormData();
+  const { imageUrl, name, color1, ...aiResult } = clothingData;
+
+  // 1. Resmi ekle
+  const uriParts = imageUrl.split('/');
+  const fileName = uriParts[uriParts.length - 1];
+  let fileType = 'image/jpeg'; // Varsayılan
+  const fileTypeMatch = /\.(\w+)$/.exec(fileName);
+  if (fileTypeMatch) {
+    fileType = `image/${fileTypeMatch[1]}`;
+  }
+
+  formData.append('image', {
+    uri: imageUrl,
+    name: fileName,
+    type: fileType,
+  });
+
+  // 2. Diğer verileri AI sonucundan ve formdan alıp ekle
+  formData.append('name', name);
+  formData.append('color', color1);
+
+  // AI verilerini işle (nested olabilir)
+  if (aiResult && aiResult.kiyafet_analizi) {
+    const analysis = aiResult.kiyafet_analizi;
+    if (analysis.genel_bilgi) {
+      formData.append('category', analysis.genel_bilgi.kategori || 'General');
+      formData.append('subCategory', analysis.genel_bilgi.tur || 'General');
+    }
+    if(analysis.stil_kullanimi && analysis.stil_kullanimi.tarz && analysis.stil_kullanimi.tarz.length > 0){
+      // Sezon bilgisi için 'tarz' dizisinden bir değer almayı deneyelim
+      formData.append('season', analysis.stil_kullanimi.tarz[0]);
+    } else {
+      formData.append('season', 'All-Season'); // Güvenli bir varsayılan
+    }
+     if (analysis.tasarim_detaylari) {
+      formData.append('size', analysis.tasarim_detaylari.kesim || 'One Size');
+    }
+    if (analysis.malzeme_tahmini) {
+        formData.append('material', analysis.malzeme_tahmini.kumas_tipi || 'Unknown');
+    }
+  } else {
+    // Eski veya basitleştirilmiş AI verisi için fallback
+    formData.append('category', aiResult.category || 'General');
+    formData.append('season', aiResult.season || 'All-Season');
+  }
+
+
   try {
-    // We assume the backend endpoint is '/clothes' from the file structure
-    const response = await apiClient.post("/clothes", clothingData);
+    const response = await apiClient.post('/clothes/add', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
     return { success: true, data: response.data };
   } catch (error) {
     console.error(
-      "Error saving clothing item:",
-      error.response ? error.response.data : error.message,
+      'Error saving clothing item:',
+      error.response ? error.response.data : error.message
     );
     const message =
-      error.response?.data?.message || "Kıyafet kaydedilirken bir hata oluştu.";
+      error.response?.data?.message || 'Kıyafet kaydedilirken bir hata oluştu.';
     return { success: false, message };
   }
 };

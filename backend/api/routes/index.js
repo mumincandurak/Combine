@@ -9,7 +9,7 @@ const fs = require('fs');
 /* Dynamically load all route files in the current directory */
 let routes = fs.readdirSync(__dirname);
 routes.forEach(file => {
-    if (file !== 'index.js') {
+    if (file !== 'index.js' && file !== 'image.js') {
       console.log("Yüklenen Rota Dosyası:", file); // <--- BU SATIRI EKLE
         const route = require(`./${file}`);
         const routePath = `/${file.replace('.js', '')}`;

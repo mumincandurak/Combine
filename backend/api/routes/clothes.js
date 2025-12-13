@@ -31,6 +31,7 @@ router.get("/", verifyToken, async (req, res) => {
 
 /* POST add a new cloth */
 router.post("/add", verifyToken, upload.single("image"), async (req, res) => {
+    console.log("[/clothes/add] - Request received");
     try {
         const {
             name,
@@ -45,15 +46,15 @@ router.post("/add", verifyToken, upload.single("image"), async (req, res) => {
             season,
             tempratureRange
         } = req.body;
-        console.log(req.file);
-        console.log(req.body);
+        console.log("[/clothes/add] - Body:", req.body);
+        console.log("[/clothes/add] - File:", req.file ? `Exists, ${req.file.size} bytes` : "No file uploaded");
 
-        // Zorunlu alan kontrolü (Modelde required olanlar)
-        if (!name || !category || !color || !occasionId || !season) {
+        // Zorunlu alan kontrolü (Modelde required olanlar) - Geçici olarak occasionId ve season kaldırıldı
+        if (!name || !category || !color) {
             return res.status(_enum.HTTP_STATUS.BAD_REQUEST).json(
                 response.errorResponse(_enum.HTTP_STATUS.BAD_REQUEST, {
                     message: "Missing required fields",
-                    description: "Name, Category, SubCategory, Season and OccasionId are required."
+                    description: "Name, Category, and Color are required."
                 })
             );
         }
@@ -67,12 +68,19 @@ router.post("/add", verifyToken, upload.single("image"), async (req, res) => {
                 description: "photo is required"
             })
         } else {
+            console.log("[/clothes/add] - Starting Cloudinary upload...");
             const cloudinaryUpload = await new Promise((resolve, reject) => {
                 cloudinary.uploader.upload_stream(
                     { folder: "CombineApp" },
                     (error, result) => {
-                        if (error) reject(error);
-                        else resolve(result);
+                        if (error) {
+                            console.error("[/clothes/add] - Cloudinary Error:", error);
+                            reject(error);
+                        }
+                        else {
+                            console.log("[/clothes/add] - Cloudinary Success:", result.secure_url);
+                            resolve(result);
+                        }
                     }
                 ).end(req.file.buffer);
             });
@@ -80,26 +88,35 @@ router.post("/add", verifyToken, upload.single("image"), async (req, res) => {
             imageUrl = cloudinaryUpload.secure_url;
             imagePublicId = cloudinaryUpload.public_id
         }
+        
+        console.log("[/clothes/add] - Cloudinary upload finished. Image URL:", imageUrl);
 
-        const newCloth = new ClothingItems({
+        const newClothData = {
             userId: req.user.id, // Token'dan gelen user ID'yi kullanıyoruz
             name,
             category,
-            subCategory,
-            occasionId,
-            description,
-            size,
             color,
             imageUrl,
             imagePublicId,
-            material,
-            brand,
-            season,
-            tempratureRange,
             isActive: true
-        });
+        };
 
+        // İsteğe bağlı alanları varsa ekle
+        if (subCategory) newClothData.subCategory = subCategory;
+        if (occasionId) newClothData.occasionId = occasionId;
+        if (description) newClothData.description = description;
+        if (size) newClothData.size = size;
+        if (material) newClothData.material = material;
+        if (brand) newClothData.brand = brand;
+        if (season) newClothData.season = season;
+        if (tempratureRange) newClothData.tempratureRange = tempratureRange;
+        
+
+        const newCloth = new ClothingItems(newClothData);
+        
+        console.log("[/clothes/add] - Saving new cloth to database...");
         const savedCloth = await newCloth.save();
+        console.log("[/clothes/add] - Cloth saved successfully.");
 
         return res.status(_enum.HTTP_STATUS.CREATED).json(
             response.successResponse(_enum.HTTP_STATUS.CREATED, {
@@ -109,7 +126,7 @@ router.post("/add", verifyToken, upload.single("image"), async (req, res) => {
         );
 
     } catch (err) {
-        console.error("Error: add cloth", err);
+        console.error("[/clothes/add] - Error in route handler:", err);
         return res.status(_enum.HTTP_STATUS.INTERNAL_SERVER_ERROR).json(
             response.errorResponse(_enum.HTTP_STATUS.INTERNAL_SERVER_ERROR, err.message)
         );

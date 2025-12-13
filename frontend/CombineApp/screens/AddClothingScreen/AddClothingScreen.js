@@ -17,7 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
 // API ve Sabitler
-import { saveClothingItem, uploadImageForBgRemoval } from '../../api/clothing';
+import { saveClothingItem } from '../../api/clothing';
 import { analyzeImageWithAI } from '../../api/clothingAnalyze';
 import { COLORS_OPTIONS } from '../../constants/options'; // Renk listesi
 import SelectionModal from '../../components/SelectionModal'; // Seçim Modalı
@@ -47,20 +47,27 @@ const AddClothingScreen = ({ navigation }) => {
     try {
         const response = await analyzeImageWithAI(uri);
         
-        if (response.success) {
+        if (response.success && response.data && response.data.kiyafet_analizi) {
+            const analysis = response.data.kiyafet_analizi;
             setAiResult(response.data);
             
-            // AI'dan gelen renk string'ini (örn: 'red') bizim listemizdeki objeye çeviriyoruz
-            const foundColor1 = COLORS_OPTIONS.find(c => c.value === response.data.ana_renk);
-            const foundColor2 = COLORS_OPTIONS.find(c => c.value === response.data.color2);
+            const anaRenk = analysis.renk_paleti?.ana_renk;
+            const ikincilRenk = analysis.renk_paleti?.ikincil_renk;
+            const kategori = analysis.genel_bilgi?.kategori;
+            const tur = analysis.genel_bilgi?.tur;
+            const mevsim = analysis.stil_kullanimi?.tarz?.[0] || 'Tüm Mevsimler';
+
+            const foundColor1 = COLORS_OPTIONS.find(c => c.label.toLowerCase() === anaRenk?.toLowerCase());
+            const foundColor2 = COLORS_OPTIONS.find(c => c.label.toLowerCase() === ikincilRenk?.toLowerCase());
 
             setColor1(foundColor1 || null);
             setColor2(foundColor2 || null);
             
-            // Varsayılan bir isim önerelim
-            setName(`${response.data.season} ${response.data.category}`);
+            setName(`${mevsim} ${tur}`);
+
         } else {
-            Alert.alert("Hata", "Görüntü analiz edilemedi.");
+            const errorMessage = response.error || "Görüntü analiz edilemedi.";
+            Alert.alert("Hata", errorMessage);
         }
     } catch (error) {
         console.error(error);
@@ -135,26 +142,18 @@ const AddClothingScreen = ({ navigation }) => {
     setLoading(true);
 
     try {
-      // 1. Arka planı temizle
-      // (Kullanıcıya bilgi veriyoruz)
-      Alert.alert("İşleniyor", "Arka plan temizleniyor ve kaydediliyor...", [], { cancelable: false });
-      const bgResponse = await uploadImageForBgRemoval(imageUri);
-      if (!bgResponse.success) throw new Error("Arka plan temizleme başarısız.");
-
-      const cleanImageUrl = bgResponse.imageUrl;
-
-      // 2. Final veriyi hazırla
+      // Final veriyi hazırla
       const finalJson = {
         ...aiResult,          // category, season vb.
         name: name,           // Kullanıcının girdiği isim
         color1: color1.value, // Seçilen rengin değeri (örn: 'red')
         color2: color2 ? color2.value : null, 
-        imageUrl: imageUri // Temizlenmiş resim
+        imageUrl: imageUri // Orjinal resim
       };
 
       console.log("Saving JSON:", finalJson);
 
-      // 3. Kaydet
+      // Kaydet
       const saveResponse = await saveClothingItem(finalJson);
       if (!saveResponse.success) throw new Error('Veritabanına kayıt başarısız.');
 
@@ -240,11 +239,15 @@ const AddClothingScreen = ({ navigation }) => {
                 <View style={styles.infoCard}>
                     <View style={styles.infoRow}>
                         <Text style={styles.infoLabel}>Kategori:</Text>
-                        <Text style={styles.infoValue}>{aiResult.category}</Text>
+                        <Text style={styles.infoValue}>{aiResult.kiyafet_analizi?.genel_bilgi?.kategori}</Text>
+                    </View>
+                    <View style={styles.infoRow}>
+                        <Text style={styles.infoLabel}>Tür:</Text>
+                        <Text style={styles.infoValue}>{aiResult.kiyafet_analizi?.genel_bilgi?.tur}</Text>
                     </View>
                     <View style={styles.infoRow}>
                         <Text style={styles.infoLabel}>Mevsim:</Text>
-                        <Text style={styles.infoValue}>{aiResult.season}</Text>
+                        <Text style={styles.infoValue}>{aiResult.kiyafet_analizi?.stil_kullanimi?.tarz?.[0] || 'Tüm Mevsimler'}</Text>
                     </View>
                 </View>
 
@@ -268,7 +271,7 @@ const AddClothingScreen = ({ navigation }) => {
                     {loading ? (
                         <ActivityIndicator color={COLORS.primaryText} />
                     ) : (
-                        <Text style={styles.saveButtonText}>Arka Planı Temizle & Kaydet</Text>
+                        <Text style={styles.saveButtonText}>Kaydet</Text>
                     )}
                 </TouchableOpacity>
             </View>
