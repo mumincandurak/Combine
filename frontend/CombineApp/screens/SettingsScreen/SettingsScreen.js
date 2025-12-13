@@ -52,6 +52,11 @@ const SettingsScreen = ({ navigation }) => {
               iconName="calendar-outline"
               onPress={() => navigation.navigate('EditDates')}
             />
+            <SettingsMenuItem 
+              title="Change Password" 
+              iconName="lock-closed-outline"
+              onPress={() => navigation.navigate('ChangePassword')}
+            />
           </View>
 
           {/* --- ÇIKIŞ BUTONU --- */}
