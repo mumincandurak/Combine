@@ -152,7 +152,7 @@ const WardrobeScreen = ({ navigation }) => {
     const renderItem = ({ item }) => {
         // Eğer bu eleman bizim eklediğimiz boş elemansa, görünmez bir kutu çiz
         if (item.empty === true) {
-            return <View style={[styles.itemInvisible, { flex: 1, margin: 8 }]} />;
+            return <View style={[styles.itemInvisible, { flex: 1, margin: 8}]} />;
         }
         
         return (
@@ -238,7 +238,12 @@ const WardrobeScreen = ({ navigation }) => {
                     />
                 )}
 
-                <TouchableOpacity style={styles.fab} onPress={handleAddPhoto}>
+                <TouchableOpacity 
+                    style={styles.fab} 
+                    onPress={handleAddPhoto}
+                    activeOpacity={0.8}
+                    hitSlop={{top: 5, bottom: 5, left: 5, right: 5}}
+                >
                     <Ionicons name="add" size={32} color={COLORS.white} />
                 </TouchableOpacity>
                 
@@ -353,7 +358,7 @@ const styles = StyleSheet.create({
     },
     fab: {
         position: 'absolute',
-        bottom: 20,
+        bottom: 15,
         right: 20,
         width: 60,
         height: 60,
@@ -362,6 +367,14 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         elevation: 8,
+        zIndex: 1000, // Diğer öğelerin üzerinde kalmasını sağlar
+        shadowColor: "#000",
+        shadowOffset: {
+            width: 0,
+            height: 4,
+        },
+        shadowOpacity: 0.30,
+        shadowRadius: 4.65,
     },
     emptyContainer: {
         flex: 1,
