@@ -21,6 +21,7 @@ import StatisticsScreen from "./screens/StatisticsScreen/StatisticsScreen";
 import AddClothingScreen from "./screens/AddClothingScreen/AddClothingScreen";
 import OutfitScreen from "./screens/OutfitScreen/OutfitScreen";
 import CreateOutfitScreen from "./screens/CreateOutfitScreen/CreateOutfitScreen";
+import ChangePasswordScreen from "./screens/ChangePasswordScreen/ChangePasswordScreen";
 
 const Stack = createStackNavigator(); // Ana Stack (Global sayfalar için)
 const Tab = createBottomTabNavigator();
@@ -193,6 +194,11 @@ function AppStack() {
         name="CreateOutfit"
         component={CreateOutfitScreen}
         options={{ title: "Create New Outfit" }}
+      />
+      <Stack.Screen
+        name="ChangePassword"
+        component={ChangePasswordScreen}
+        options={{ title: "Change Password" }}
       />
     </Stack.Navigator>
   );
