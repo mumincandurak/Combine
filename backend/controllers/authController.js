@@ -36,3 +36,107 @@ export const login = async (req, res) => {
     res.status(500).json({ message: "Sunucu hatası" });
   }
 };
+
+export const verifyPassword = async (req, res) => {
+  try {
+    const { password } = req.body;
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "Kullanıcı bulunamadı" });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) return res.status(400).json({ message: "Şifre eşleşmedi" });
+
+    res.json({ success: true, message: "Şifre doğrulandı" });
+  } catch (error) {
+    console.error("Verify password error:", error);
+    res.status(500).json({ message: "Sunucu hatası" });
+  }
+};
+
+export const changePassword = async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "Kullanıcı bulunamadı" });
+
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) return res.status(400).json({ message: "Eski şifre hatalı" });
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    await user.save();
+
+    res.json({ message: "Şifre başarıyla değiştirildi" });
+  } catch (error) {
+    console.error("Change password error:", error);
+    res.status(500).json({ message: "Sunucu hatası" });
+  }
+};
+
+export const forgotPassword = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+    if (!user) return res.status(404).json({ message: "Kullanıcı bulunamadı" });
+
+    // 6 haneli kod üret
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // Veritabanına kaydet (15 dakika geçerli)
+    user.resetPasswordCode = code;
+    user.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
+    await user.save();
+
+    // E-posta gönderim simülasyonu
+    console.log(`---------------------------------------------------`);
+    console.log(`[MAIL SERVICE] To: ${email} | Code: ${code}`);
+    console.log(`---------------------------------------------------`);
+
+    res.json({ message: "Doğrulama kodu e-postanıza gönderildi." });
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    res.status(500).json({ message: "Sunucu hatası" });
+  }
+};
+
+export const verifyCode = async (req, res) => {
+  try {
+    const { email, code } = req.body;
+    const user = await User.findOne({
+      email,
+      resetPasswordCode: code,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) return res.status(400).json({ message: "Geçersiz veya süresi dolmuş kod." });
+
+    res.json({ success: true, message: "Kod doğrulandı." });
+  } catch (error) {
+    console.error("Verify code error:", error);
+    res.status(500).json({ message: "Sunucu hatası" });
+  }
+};
+
+export const resetPassword = async (req, res) => {
+  try {
+    const { email, code, newPassword } = req.body;
+    const user = await User.findOne({
+      email,
+      resetPasswordCode: code,
+      resetPasswordExpires: { $gt: Date.now() },
+    });
+
+    if (!user) return res.status(400).json({ message: "Geçersiz veya süresi dolmuş işlem." });
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    user.password = hashedPassword;
+    user.resetPasswordCode = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    res.json({ message: "Şifreniz başarıyla yenilendi." });
+  } catch (error) {
+    console.error("Reset password error:", error);
+    res.status(500).json({ message: "Sunucu hatası" });
+  }
+};
