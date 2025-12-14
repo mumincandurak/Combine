@@ -99,11 +99,31 @@ export const forgotPassword = async (req, res) => {
     });
 
     const mailOptions = {
-      from: '"Combine App" <combine.gtu@gmail.com>',
+      from: '"Combine Security" <combine.gtu@gmail.com>',
       to: email,
-      subject: "Password Reset Verification Code",
-      text: `Your verification code is: ${code}`,
-      html: `<b>Your verification code is:</b> <h2>${code}</h2><p>This code will expire in 15 minutes.</p>`,
+      subject: "Verification Code - Combine App",
+      text: `Hello,\n\nYou requested a password reset for your Combine App account.\nYour verification code is: ${code}\n\nThis code will expire in 15 minutes.\n\nIf you did not request this, please ignore this email.\n\nBest regards,\nThe Combine Team`,
+      html: `
+        <div style="font-family: Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px; background-color: #ffffff;">
+            <h2 style="color: #6C63FF; text-align: center; margin-bottom: 30px;">Password Reset Request</h2>
+            <p style="color: #333; font-size: 16px; line-height: 1.5;">Hello,</p>
+            <p style="color: #555; font-size: 16px; line-height: 1.5;">You recently requested to reset your password for your <strong>Combine App</strong> account. Please use the verification code below to complete the process:</p>
+            
+            <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-radius: 8px; margin: 30px 0; border: 1px solid #e9ecef;">
+                <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #2d3436;">${code}</span>
+            </div>
+            
+            <p style="color: #555; font-size: 14px;">This code is valid for <strong>15 minutes</strong>.</p>
+            <p style="color: #888; font-size: 13px; margin-top: 30px;">If you did not initiate this request, you can safely ignore this email.</p>
+            
+            <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;" />
+            
+            <p style="color: #aaa; font-size: 12px; text-align: center;">
+                Combine App Team<br>
+                Secure your style.
+            </p>
+        </div>
+      `,
     };
 
     await transporter.sendMail(mailOptions);
