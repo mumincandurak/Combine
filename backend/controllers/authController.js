@@ -94,7 +94,7 @@ export const forgotPassword = async (req, res) => {
       service: "gmail",
       auth: {
         user: "combine.gtu@gmail.com",
-        pass: "Deneme1.", 
+        pass: "lihj omrt xbnh esum", 
       },
     });
 
