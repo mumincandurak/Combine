@@ -58,7 +58,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
         try {
             // Backend endpoint: /auth/forgot-password
             await apiClient.post("/auth/forgot-password", { email });
-            Alert.alert("Success", "Verification code sent to your email.");
+            Alert.alert("Success", "Verification code sent to your email. Please check your Inbox and Spam/Junk folder.");
             setStep(2);
         } catch (error) {
             const msg = error.response?.data?.message || "Could not send code.";
