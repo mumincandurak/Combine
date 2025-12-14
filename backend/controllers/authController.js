@@ -1,6 +1,7 @@
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
+import nodemailer from "nodemailer";
 
 export const register = async (req, res) => {
   try {
@@ -87,15 +88,31 @@ export const forgotPassword = async (req, res) => {
     user.resetPasswordExpires = Date.now() + 15 * 60 * 1000;
     await user.save();
 
-    // E-posta gönderim simülasyonu
-    console.log(`---------------------------------------------------`);
-    console.log(`[MAIL SERVICE] To: ${email} | Code: ${code}`);
-    console.log(`---------------------------------------------------`);
+    // --- NODEMAILER SETUP ---
+    // Not: Gerçek projelerde bu bilgileri .env dosyasında saklayın!
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: "combine.gtu@gmail.com",
+        pass: "Deneme1.", 
+      },
+    });
+
+    const mailOptions = {
+      from: '"Combine App" <combine.gtu@gmail.com>',
+      to: email,
+      subject: "Password Reset Verification Code",
+      text: `Your verification code is: ${code}`,
+      html: `<b>Your verification code is:</b> <h2>${code}</h2><p>This code will expire in 15 minutes.</p>`,
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log(`[MAIL SENT] To: ${email} | Code: ${code}`);
 
     res.json({ message: "Doğrulama kodu e-postanıza gönderildi." });
   } catch (error) {
     console.error("Forgot password error:", error);
-    res.status(500).json({ message: "Sunucu hatası" });
+    res.status(500).json({ message: "Sunucu hatası veya mail gönderilemedi." });
   }
 };
 
