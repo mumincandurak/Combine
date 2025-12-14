@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
     View,
@@ -20,25 +19,16 @@ const EditProfileScreen = ({ navigation }) => {
     const { user, updateUser } = useAuth();
 
     const [name, setName] = useState(user?.name || "");
-    const [country, setCountry] = useState(user?.country || "");
-    const [city, setCity] = useState(user?.city || "");
-    const [neighborhood, setNeighborhood] = useState(user?.neighborhood || "");
     const [imageUri, setImageUri] = useState(user?.profileImageUrl || "");
 
     useEffect(() => {
         setName(user?.name || "");
-        setCountry(user?.country || "");
-        setCity(user?.city || "");
-        setNeighborhood(user?.neighborhood || "");
         setImageUri(user?.profileImageUrl || "");
     }, [user]);
 
     const handleSave = () => {
         updateUser({
             name,
-            country,
-            city,
-            neighborhood,
             profileImageUrl: imageUri,
         });
         Alert.alert("Success", "Your profile has been updated.", [
@@ -69,17 +59,6 @@ const EditProfileScreen = ({ navigation }) => {
         }
     };
 
-    const applyDeviceLocation = () => {
-        if (!user) return;
-        if (user.country) setCountry(user.country);
-        if (user.city) setCity(user.city);
-        if (user.neighborhood) setNeighborhood(user.neighborhood);
-        Alert.alert(
-            "Location Applied",
-            "Device location has been applied to the form."
-        );
-    };
-
     return (
         <LinearGradient colors={COLORS.gradient} style={styles.gradient}>
             <SafeAreaView style={styles.container}>
@@ -106,41 +85,15 @@ const EditProfileScreen = ({ navigation }) => {
                             placeholderTextColor={COLORS.gray}
                         />
 
-                        <Text style={styles.label}>Country</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={country}
-                            onChangeText={setCountry}
-                            placeholder="Country"
-                            placeholderTextColor={COLORS.gray}
-                        />
-
-                        <Text style={styles.label}>City</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={city}
-                            onChangeText={setCity}
-                            placeholder="City"
-                            placeholderTextColor={COLORS.gray}
-                        />
-
-                        <Text style={styles.label}>Neighborhood</Text>
-                        <TextInput
-                            style={styles.input}
-                            value={neighborhood}
-                            onChangeText={setNeighborhood}
-                            placeholder="Neighborhood or district"
-                            placeholderTextColor={COLORS.gray}
-                        />
-
-                        <TouchableOpacity
-                            style={styles.smallButton}
-                            onPress={applyDeviceLocation}
-                        >
-                            <Text style={styles.smallButtonText}>
-                                Use Device Location
+                        <Text style={styles.label}>Location</Text>
+                        <View style={styles.locationDisplay}>
+                            <Text style={styles.locationText}>
+                                {user?.neighborhood}, {user?.city}, {user?.country}
                             </Text>
-                        </TouchableOpacity>
+                        </View>
+                        <Text style={styles.locationHint}>
+                            Location is automatically detected from your device GPS
+                        </Text>
                     </View>
 
                     <TouchableOpacity
@@ -195,17 +148,27 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: COLORS.secondary,
     },
-    smallButton: {
-        backgroundColor: COLORS.secondary,
-        borderRadius: 8,
-        paddingVertical: 10,
-        alignItems: "center",
+    locationDisplay: {
+        width: "100%",
+        height: 50,
+        backgroundColor: COLORS.card,
+        borderRadius: 10,
+        paddingHorizontal: 15,
+        justifyContent: "center",
+        borderWidth: 1,
+        borderColor: COLORS.secondary,
         marginBottom: 10,
     },
-    smallButtonText: {
-        color: COLORS.white,
-        fontSize: 15,
+    locationText: {
+        fontSize: 16,
+        color: COLORS.textPrimary,
         fontWeight: "500",
+    },
+    locationHint: {
+        fontSize: 12,
+        color: COLORS.textSecondary,
+        marginBottom: 20,
+        fontStyle: "italic",
     },
     saveButton: {
         backgroundColor: COLORS.primary,
