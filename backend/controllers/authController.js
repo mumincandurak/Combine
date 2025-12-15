@@ -10,7 +10,7 @@ export const register = async (req, res) => {
     if (existingUser) return res.status(400).json({ message: "Bu e-posta zaten kayıtlı." });
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const user = new User({ username, email, password: hashedPassword });
+    const user = new User({ username, name: username, email, password: hashedPassword });
     await user.save();
 
     res.json({ message: "Kayıt başarılı" });
