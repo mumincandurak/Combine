@@ -11,6 +11,7 @@ import {
   TextInput, // Added
   KeyboardAvoidingView, // Added
   Platform, // Added
+  Alert, // Added
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { LinearGradient } from "expo-linear-gradient";
@@ -18,47 +19,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect } from "@react-navigation/native";
 import { COLORS } from "../../colors";
 
-// Helper for Mock Images
-const MOCK_IMG = "https://via.placeholder.com/150";
-
-const INITIAL_FAVORITES = [
-  {
-    id: "1",
-    name: "Rainy Tuesday",
-    date: "Nov 12",
-    items: 3,
-    outfitItems: [
-      { id: "f1", imageUrl: MOCK_IMG },
-      { id: "f2", imageUrl: MOCK_IMG },
-      { id: "f3", imageUrl: MOCK_IMG },
-    ],
-  },
-  {
-    id: "2",
-    name: "Weekend Vibe",
-    date: "Nov 14",
-    items: 2,
-    outfitItems: [
-      { id: "f4", imageUrl: MOCK_IMG },
-      { id: "f5", imageUrl: MOCK_IMG },
-    ],
-  },
-];
-
-const INITIAL_CUSTOM = [
-  {
-    id: "101",
-    name: "My Birthday Look",
-    date: "Oct 20",
-    items: 5,
-    outfitItems: [],
-  },
-];
+import { getUserOutfits, deleteOutfit, clearDislikedOutfits } from "../../api/outfits"; // Import API function
+import { useAuth } from "../../context/AuthContext"; // Import Auth Context
 
 const OutfitScreen = ({ navigation, route }) => {
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("favorites");
-  const [customOutfits, setCustomOutfits] = useState(INITIAL_CUSTOM);
-  const [favoriteOutfits, setFavoriteOutfits] = useState(INITIAL_FAVORITES);
+  const [customOutfits, setCustomOutfits] = useState([]);
+  const [favoriteOutfits, setFavoriteOutfits] = useState([]);
+  const [dislikedOutfits, setDislikedOutfits] = useState([]); // New state
+  const [loading, setLoading] = useState(false);
   const [expandedId, setExpandedId] = useState(null);
 
   // --- RENAME STATE ---
@@ -66,21 +36,59 @@ const OutfitScreen = ({ navigation, route }) => {
   const [itemToRename, setItemToRename] = useState(null);
   const [newNameText, setNewNameText] = useState("");
 
-  // --- LISTENING FOR NEW OUTFITS ---
+  // --- FETCH OUTFITS ---
+  const fetchOutfits = useCallback(async () => {
+    // Ensure we have a valid logged-in user with an ID
+    if (!user?._id) return;
+    try {
+        setLoading(true);
+        const response = await getUserOutfits();
+        if (response.data && response.data.success) {
+            const allOutfits = response.data.data;
+            
+            // Filter and map outfits
+            const favs = allOutfits.filter(o => o.status === 'worn' || o.status === 'favorite').map(mapOutfitData);
+            const customs = allOutfits.filter(o => o.status === 'created' || o.status === 'custom').map(mapOutfitData);
+            const disliked = allOutfits.filter(o => o.status === 'disliked').map(mapOutfitData);
+            
+            setFavoriteOutfits(favs);
+            setCustomOutfits(customs); 
+            setDislikedOutfits(disliked); 
+        }
+    } catch (error) {
+        console.error("Error fetching outfits:", error);
+    } finally {
+        setLoading(false);
+    }
+  }, [user?._id]);
+
+  const mapOutfitData = (outfit) => {
+      return {
+          id: outfit._id,
+          name: outfit.name || `Outfit ${outfit._id.substr(-4)}`,
+          date: new Date(outfit.createdAt).toLocaleDateString(),
+          items: outfit.items ? outfit.items.length : 0,
+          outfitItems: outfit.items || []
+      };
+  };
+
   useFocusEffect(
     useCallback(() => {
+      fetchOutfits();
+
       if (route.params?.newOutfit) {
-        const newOutfit = route.params.newOutfit;
-        setCustomOutfits((prev) => [newOutfit, ...prev]);
-        setActiveTab("custom");
-        setExpandedId(newOutfit.id);
-        navigation.setParams({ newOutfit: null });
+        // ... handle param if really needed, but fetching is better
+        // logic for param handling can remain or be merged
       }
-    }, [route.params?.newOutfit]),
+    }, [fetchOutfits, route.params?.newOutfit]),
   );
 
   const currentData =
-    activeTab === "favorites" ? favoriteOutfits : customOutfits;
+    activeTab === "favorites" 
+        ? favoriteOutfits 
+        : activeTab === "custom" 
+        ? customOutfits 
+        : dislikedOutfits;
 
   const handleCreateOutfit = () => {
     navigation.navigate("CreateOutfit");
@@ -116,6 +124,56 @@ const OutfitScreen = ({ navigation, route }) => {
     setItemToRename(null);
   };
 
+  const handleDeleteOutfit = (item) => {
+      Alert.alert(
+          "Kombini Sil",
+          "Bu kombini silmek istediğinize emin misiniz?",
+          [
+              { text: "Vazgeç", style: "cancel" },
+              { 
+                  text: "Sil", 
+                  style: "destructive", 
+                  onPress: async () => {
+                      try {
+                          await deleteOutfit(item.id);
+                          // Update local state immediately
+                          const filterFunc = (o) => o.id !== item.id;
+                          setFavoriteOutfits(prev => prev.filter(filterFunc));
+                          setCustomOutfits(prev => prev.filter(filterFunc));
+                          setDislikedOutfits(prev => prev.filter(filterFunc));
+                      } catch (error) {
+                          Alert.alert("Hata", "Silme işlemi başarısız oldu.");
+                          console.error("Delete error:", error);
+                      }
+                  }
+              }
+          ]
+      );
+  };
+
+  const handleClearAllDisliked = () => {
+    Alert.alert(
+        "Tümünü Sil",
+        "Beğenmediğiniz tüm kombin kayıtlarını silmek ve sıfırlamak istiyor musunuz?",
+        [
+            { text: "Vazgeç", style: "cancel" },
+            { 
+                text: "Sıfırla", 
+                style: "destructive", 
+                onPress: async () => {
+                    try {
+                        await clearDislikedOutfits();
+                        setDislikedOutfits([]);
+                        Alert.alert("Başarılı", "Liste temizlendi.");
+                    } catch (error) {
+                        Alert.alert("Hata", "Temizleme işlemi başarısız oldu.");
+                    }
+                }
+            }
+        ]
+    );
+  };
+
   const renderOutfitItem = ({ item }) => {
     const isExpanded = expandedId === item.id;
 
@@ -149,6 +207,17 @@ const OutfitScreen = ({ navigation, route }) => {
                 }}
               >
                 <Ionicons name="pencil" size={16} color={COLORS.gray} />
+              </TouchableOpacity>
+
+              {/* DELETE BUTTON */}
+              <TouchableOpacity
+                style={styles.deleteIconArea}
+                onPress={(e) => {
+                  e.stopPropagation(); 
+                  handleDeleteOutfit(item);
+                }}
+              >
+                <Ionicons name="trash-outline" size={18} color={COLORS.error || '#FF6B6B'} />
               </TouchableOpacity>
             </View>
 
@@ -242,6 +311,22 @@ const OutfitScreen = ({ navigation, route }) => {
               My Creations
             </Text>
           </TouchableOpacity>
+          <TouchableOpacity
+            style={[
+              styles.tabButton,
+              activeTab === "disliked" && styles.activeTabButton,
+            ]}
+            onPress={() => setActiveTab("disliked")}
+          >
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === "disliked" && styles.activeTabText,
+              ]}
+            >
+              Disliked
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* List */}
@@ -250,12 +335,25 @@ const OutfitScreen = ({ navigation, route }) => {
           renderItem={renderOutfitItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
+          refreshing={loading}
+          onRefresh={fetchOutfits}
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
-              <Text style={styles.emptyText}>No outfits yet.</Text>
+              <Text style={styles.emptyText}>
+                  {loading ? "Yükleniyor..." : "Henüz kombin yok."}
+              </Text>
             </View>
           }
         />
+
+        {activeTab === 'disliked' && dislikedOutfits.length > 0 && (
+            <View style={styles.floatingActionContainer}>
+                 <TouchableOpacity style={styles.clearAllButton} onPress={handleClearAllDisliked}>
+                    <Text style={styles.clearAllText}>Hepsini Temizle</Text>
+                    <Ionicons name="trash-bin-outline" size={20} color={COLORS.white} style={{ marginLeft: 5 }} />
+                 </TouchableOpacity>
+            </View>
+        )}
 
         <TouchableOpacity
           style={styles.fab}
@@ -366,6 +464,10 @@ const styles = StyleSheet.create({
     padding: 5,
     marginLeft: 5,
   },
+  deleteIconArea: {
+    padding: 5,
+    marginLeft: 8,
+  },
   cardMetaContainer: { flexDirection: "row" },
   cardDate: { fontSize: 12, color: COLORS.textSecondary, marginRight: 10 },
   cardItemCount: { fontSize: 12, color: COLORS.primary, fontWeight: "600" },
@@ -427,6 +529,33 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 4.65,
   },
+  
+  floatingActionContainer: {
+     position: 'absolute',
+     bottom: 90, 
+     alignSelf: 'center',
+     width: '100%',
+     alignItems: 'center',
+     zIndex: 999
+  },
+  clearAllButton: {
+      backgroundColor: COLORS.error || '#FF6B6B',
+      paddingVertical: 12,
+      paddingHorizontal: 24,
+      borderRadius: 25,
+      flexDirection: 'row',
+      alignItems: 'center',
+      elevation: 5,
+      shadowColor: "#000",
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.25,
+  },
+  clearAllText: {
+      color: COLORS.white,
+      fontWeight: 'bold',
+      fontSize: 14,
+  },
+
   emptyContainer: { marginTop: 50, alignItems: "center" },
   emptyText: { color: COLORS.gray, fontSize: 16 },
 
