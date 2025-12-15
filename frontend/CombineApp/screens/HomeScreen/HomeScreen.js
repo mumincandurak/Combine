@@ -156,7 +156,8 @@ const HomeScreen = ({ navigation }) => {
             fetchOutfit();
             fetchWeather();
         }
-    }, [user, fetchOutfit, fetchWeather]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?._id]);
 
 
     return (
@@ -166,7 +167,7 @@ const HomeScreen = ({ navigation }) => {
                     {/* ÜST BAŞLIK VE AYARLAR BUTONU */}
                     <View style={styles.header}>
                         <Text style={styles.greeting}>
-                            Günaydın, {user?.name.split(" ")[0]}
+                            Günaydın, {user?.name ? user.name.split(" ")[0] : "User"}
                         </Text>
 
                         <TouchableOpacity onPress={handleGoToSettings}>
