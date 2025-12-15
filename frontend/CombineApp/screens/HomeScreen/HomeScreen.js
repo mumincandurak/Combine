@@ -77,11 +77,11 @@ const HomeScreen = ({ navigation }) => {
     };
 
     // --- KOMBİN GETİRME FONKSİYONU ---
-    const fetchOutfit = useCallback(async () => {
-        console.log("fetchOutfit called");
+    const fetchOutfit = useCallback(async (params = {}) => {
+        console.log("fetchOutfit called with params:", params);
         try {
             setLoading(true);
-            const response = await generateOutfit();
+            const response = await generateOutfit(params);
             console.log("generateOutfit response:", response);
             if (response.data?.success) {
                 setOutfit(response.data.data);
@@ -90,7 +90,7 @@ const HomeScreen = ({ navigation }) => {
                 console.warn("Outfit generation failed:", response.data?.message);
             }
         } catch (error) {
-            console.error("Kombin getirme hatası:", error);
+            console.error("Kombin getirme hatası:", error.message || error);
             Alert.alert("Hata", "Kombin getirilirken bir sorun oluştu.");
         } finally {
             setLoading(false);
@@ -127,7 +127,7 @@ const HomeScreen = ({ navigation }) => {
             Alert.alert("Kaydedildi!", "Bu kombini giydiğini not aldık. Şimdi yeni bir tane gelsin!");
             fetchOutfit(); // Yeni kombin getir
         } catch (error) {
-            console.error("Beğeni hatası:", error);
+            console.error("Beğeni hatası:", error.message || error);
             Alert.alert("Hata", "İşlem gerçekleştirilemedi.");
         } finally {
             setProcessingAction(false);
@@ -139,11 +139,13 @@ const HomeScreen = ({ navigation }) => {
         if (!outfit || loading || processingAction) return;
         try {
             setProcessingAction(true);
-            await updateOutfitStatus(outfit._id, 'disliked');
+            const dislikedId = outfit._id;
+            await updateOutfitStatus(dislikedId, 'disliked');
             Alert.alert("Not Edildi", "Bu tarz kombinleri daha az göstereceğiz. İşte yeni bir tane!");
-            fetchOutfit(); // Yeni kombin getir
+            // Pass the disliked ID to ensure the next generation excludes it and uses it as negative context
+            fetchOutfit({ exclude: dislikedId, feedback: 'disliked' });
         } catch (error) {
-            console.error("Dislike hatası:", error);
+            console.error("Dislike hatası:", error.message || error);
             Alert.alert("Hata", "İşlem gerçekleştirilemedi.");
         } finally {
             setProcessingAction(false);
@@ -243,7 +245,7 @@ const HomeScreen = ({ navigation }) => {
                                 (loading || processingAction) &&
                                     styles.disabledButton,
                             ]}
-                            onPress={fetchOutfit}
+                            onPress={() => fetchOutfit()}
                             disabled={loading || processingAction}
                         >
                             <Ionicons
