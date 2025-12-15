@@ -21,6 +21,7 @@ router.post("/generate", auth, async (req, res) => {
 
         let selectedItems = [];
         let apiError = null;
+        let dislikedCombinations = [];
 
         // 2. Try AI Generation
         try {
@@ -42,11 +43,35 @@ router.post("/generate", auth, async (req, res) => {
                 name: c.name
             }));
 
+            // Fetch disliked outfits safely
+            try {
+                const dislikedOutfits = await Outfit.find({ user: req.user.id, status: 'disliked' }).populate('items');
+                if (dislikedOutfits) {
+                    dislikedCombinations = dislikedOutfits.map(o => {
+                         if (!o.items || !Array.isArray(o.items)) return [];
+                         return o.items.filter(i => i && i._id).map(i => i._id.toString());
+                    }).filter(combo => combo.length > 0);
+                }
+                
+                // Handle immediate feedback
+                if (req.body.exclude && req.body.feedback === 'disliked') {
+                     const justDisliked = await Outfit.findById(req.body.exclude);
+                     if (justDisliked && justDisliked.items) {
+                         dislikedCombinations.push(justDisliked.items.map(i => i.toString()));
+                     }
+                }
+            } catch (fetchErr) {
+                console.warn("Could not fetch disliked outfits:", fetchErr.message);
+            }
+
             const prompt = `
                 Bir moda stilistisin. Aşağıdaki gardırop envanterine sahibim:
                 ${JSON.stringify(wardrobeSummary)}
                 
-                Bu parçalardan şık bir kombin oluştur.
+                Kullanıcı daha önce şu kombinasyonları beğenmedi (Bu kombinlerin aynısını tekrar önerme!):
+                ${JSON.stringify(dislikedCombinations)}
+
+                Bu parçalardan şık bir kombin oluştur. Beğenilmeyen kombinlerdeki parçaları EŞLEŞTİRMEKTEN KAÇIN (Farklı kombinlerde kullanılabilirler ama aynı gruplamayı yapma).
                 Bir Üst (Top), bir Alt (Bottom) ve varsa Ayakkabı (Shoes) seç.
                 SADECE aşağıdaki JSON formatında yanıt ver (Markdown kullanma):
                 {
@@ -118,6 +143,19 @@ router.post("/generate", auth, async (req, res) => {
     }
 });
 
+// GET all outfits for the user
+router.get("/", auth, async (req, res) => {
+    try {
+        const outfits = await Outfit.find({ user: req.user.id })
+            .sort({ createdAt: -1 })
+            .populate('items');
+        res.json({ success: true, data: outfits });
+    } catch (error) {
+        console.error("Error fetching outfits:", error);
+        res.status(500).json({ success: false, message: "Kombinler getirilemedi." });
+    }
+});
+
 router.put("/status/:id", auth, async (req, res) => {
     try {
         const { status } = req.body;
@@ -125,6 +163,31 @@ router.put("/status/:id", auth, async (req, res) => {
         res.json({ success: true });
     } catch(err) {
         res.status(500).json({ success: false });
+    }
+});
+
+// DELETE all disliked outfits
+router.delete("/disliked", auth, async (req, res) => {
+    try {
+        await Outfit.deleteMany({ user: req.user.id, status: 'disliked' });
+        res.json({ success: true, message: "Tüm beğenilmeyen kombinler temizlendi." });
+    } catch (error) {
+        console.error("Clear disliked error:", error);
+        res.status(500).json({ success: false, message: "Temizleme işlemi başarısız." });
+    }
+});
+
+// DELETE outfit
+router.delete("/:id", auth, async (req, res) => {
+    try {
+        const outfit = await Outfit.findOneAndDelete({ _id: req.params.id, user: req.user.id });
+        if (!outfit) {
+             return res.status(404).json({ success: false, message: "Kombin bulunamadı." });
+        }
+        res.json({ success: true, message: "Kombin silindi." });
+    } catch (error) {
+        console.error("Delete error:", error);
+        res.status(500).json({ success: false, message: "Silme işlemi başarısız." });
     }
 });
 
