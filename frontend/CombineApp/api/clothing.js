@@ -223,10 +223,12 @@ export const deleteClothingItem = (itemId) => {
   });
 };
 
-export const getClothingItems = () => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve({ success: true, data: dummyWardrobeData });
-    }, 1000);
-  });
+export const getClothingItems = async () => {
+  try {
+    const response = await apiClient.get('/clothes/list');
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching clothes:", error);
+    return { success: false, data: [] };
+  }
 };
