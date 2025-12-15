@@ -44,6 +44,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
     const hasDigit = /\d/.test(newPassword);
     const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(newPassword);
     const isMatch = newPassword && confirmPassword && newPassword === confirmPassword;
+    const isPasswordValid = isLengthValid && hasUpper && hasLower && hasDigit && hasSpecial;
 
     // --- HANDLERS ---
 
@@ -215,6 +216,14 @@ const ForgotPasswordScreen = ({ navigation }) => {
                                         onFocus={() => setNewPasswordFocused(true)}
                                         onBlur={() => setNewPasswordFocused(false)}
                                     />
+                                    {isPasswordValid && (
+                                        <Ionicons 
+                                            name="checkmark-circle" 
+                                            size={24} 
+                                            color="green" 
+                                            style={styles.checkIcon}
+                                        />
+                                    )}
                                 </View>
 
                                 {newPasswordFocused && (
