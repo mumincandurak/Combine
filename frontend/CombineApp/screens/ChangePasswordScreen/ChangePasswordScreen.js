@@ -40,6 +40,7 @@ const ChangePasswordScreen = ({ navigation }) => {
     const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(newPassword);
 
     const isMatch = newPassword && confirmPassword && newPassword === confirmPassword;
+    const isNewPasswordValid = isLengthValid && hasUpper && hasLower && hasDigit && hasSpecial;
 
     // --- ESKİ ŞİFRE DOĞRULAMA ---
     const checkOldPassword = async () => {
@@ -159,7 +160,8 @@ const ChangePasswordScreen = ({ navigation }) => {
                         </View>
 
                         {/* Yeni Şifre */}
-                        <View style={styles.inputContainer}>
+                        {/* Yeni Şifre */}
+                        <View style={styles.inputWrapper}>
                             <TextInput
                                 style={styles.input}
                                 placeholder="New Password"
@@ -170,6 +172,14 @@ const ChangePasswordScreen = ({ navigation }) => {
                                 onBlur={() => setNewPasswordFocused(false)}
                                 secureTextEntry
                             />
+                            {isNewPasswordValid && (
+                                <Ionicons 
+                                    name="checkmark-circle" 
+                                    size={24} 
+                                    color="green" 
+                                    style={styles.checkIcon}
+                                />
+                            )}
                         </View>
 
                         {/* Yeni Şifre Kuralları */}
