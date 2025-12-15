@@ -10,6 +10,7 @@ import { COLORS } from "./colors";
 // Ekranlar
 import LoginScreen from "./screens/LoginScreen/LoginScreen";
 import RegisterScreen from "./screens/RegisterScreen/RegisterScreen";
+import ForgotPasswordScreen from "./screens/ForgotPasswordScreen/ForgotPasswordScreen";
 import HomeScreen from "./screens/HomeScreen/HomeScreen";
 import WardrobeScreen from "./screens/WardrobeScreen/WardrobeScreen";
 import ProfileScreen from "./screens/ProfileScreen/ProfileScreen";
@@ -59,6 +60,7 @@ function AuthStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="Register" component={RegisterScreen} />
+      <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
     </Stack.Navigator>
   );
 }
@@ -227,7 +229,7 @@ function RootNavigator() {
   return (
     // login ekranı için true yerine token yazın
     <NavigationContainer>
-      {true ? <AppStack /> : <AuthStack />}
+      {token ? <AppStack /> : <AuthStack />}
     </NavigationContainer>
   );
 }
