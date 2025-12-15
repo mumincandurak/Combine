@@ -275,6 +275,15 @@ export const AuthProvider = ({ children }) => {
             apiClient.defaults.headers.common[
                 "Authorization"
             ] = `Bearer ${storedToken}`;
+
+            try {
+                const response = await apiClient.get("/user/profile");
+                if (response.data && response.data.user) {
+                    setUser(response.data.user);
+                }
+            } catch (error) {
+                console.log("Failed to restore user profile:", error);
+            }
         }
     };
 
