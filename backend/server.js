@@ -22,11 +22,27 @@ app.get("/", (req, res) => {
 });
 
 // Auth route
+// Auth route
 app.use("/auth", authRoutes);
-
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
 
 import userRoutes from "./routes/user.js";
 app.use("/user", userRoutes);
+
+// New Routes
+import clothingRoutes from "./routes/clothingRoutes.js";
+import outfitRoutes from "./routes/outfitRoutes.js";
+
+app.use("/clothes", clothingRoutes);
+app.use("/outfits", outfitRoutes);
+
+// Static files for images
+import path from "path";
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, "0.0.0.0", () => console.log(`Server running on port ${PORT}`));
+
 
