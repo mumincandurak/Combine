@@ -71,7 +71,7 @@ const ProfileScreen = ({ navigation }) => {
                     {/* --- PROFİL BAŞLIK ALANI --- */}
                     <View style={styles.header}>
                         <Image
-                            source={{ uri: user.profileImageUrl }}
+                            source={{ uri: user.profileImageUrl || "https://via.placeholder.com/150/FFFFFF/1B1229?text=User" }}
                             style={styles.profileImage}
                         />
                         <Text style={styles.profileName}>{user.name}</Text>
@@ -93,7 +93,7 @@ const ProfileScreen = ({ navigation }) => {
                         {/* 1. Favori Renkler */}
                         <Text style={styles.infoTitle}>Favorite Colors</Text>
                         <View style={styles.colorContainer}>
-                            {user.favoriteColors.map((color, index) => (
+                            {(user.favoriteColors || []).map((color, index) => (
                                 <ColorCircle key={index} color={color} />
                             ))}
                         </View>
@@ -101,7 +101,7 @@ const ProfileScreen = ({ navigation }) => {
                         {/* 2. Stil Tercihleri */}
                         <Text style={styles.infoTitle}>Style Preferences</Text>
                         <View style={styles.styleContainer}>
-                            {user.stylePreferences.map((style, index) => (
+                            {(user.stylePreferences || []).map((style, index) => (
                                 <View key={index} style={styles.styleTag}>
                                     <Text style={styles.styleTagText}>{style}</Text>
                                 </View>
@@ -110,7 +110,7 @@ const ProfileScreen = ({ navigation }) => {
 
                         {/* 3. Önemli Tarihler */}
                         <Text style={styles.infoTitle}>Important Dates</Text>
-                        {user.importantDates.map((date) => (
+                        {(user.importantDates || []).map((date) => (
                             <View key={date.id} style={styles.dateItem}>
                                 <Text style={styles.dateTitle}>{date.title}</Text>
                                 <Text style={styles.dateText}>{date.date}</Text>
