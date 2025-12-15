@@ -15,25 +15,38 @@ import { COLORS } from "../colors";
 import * as ImagePicker from "expo-image-picker";
 import { useAuth } from "../../context/AuthContext";
 
+import apiClient from "../../api/client";
+
 const EditProfileScreen = ({ navigation }) => {
     const { user, updateUser } = useAuth();
 
     const [name, setName] = useState(user?.name || "");
     const [imageUri, setImageUri] = useState(user?.profileImageUrl || "");
+    const [loading, setLoading] = useState(false);
 
-    useEffect(() => {
-        setName(user?.name || "");
-        setImageUri(user?.profileImageUrl || "");
-    }, [user]);
+    // useEffect kaldırıldı: Kullanıcı yazı yazarken location update gelince input siliniyordu.
+    
+    const handleSave = async () => {
+        setLoading(true);
+        try {
+            const response = await apiClient.put("/user/profile", {
+                name,
+                profileImageUrl: imageUri,
+            });
 
-    const handleSave = () => {
-        updateUser({
-            name,
-            profileImageUrl: imageUri,
-        });
-        Alert.alert("Success", "Your profile has been updated.", [
-            { text: "OK", onPress: () => navigation.goBack() },
-        ]);
+            if (response.data && response.data.user) {
+                updateUser(response.data.user);
+                Alert.alert("Success", "Your profile has been updated.", [
+                    { text: "OK", onPress: () => navigation.goBack() },
+                ]);
+            }
+        } catch (error) {
+            const errorMessage =
+                error.response?.data?.message || "Failed to update profile.";
+            Alert.alert("Error", errorMessage);
+        } finally {
+            setLoading(false);
+        }
     };
 
     const handleChangePhoto = async () => {
@@ -59,13 +72,16 @@ const EditProfileScreen = ({ navigation }) => {
         }
     };
 
+    // --- Render ---
+    const placeholderImage = "https://via.placeholder.com/150/FFFFFF/1B1229?text=User";
+
     return (
         <LinearGradient colors={COLORS.gradient} style={styles.gradient}>
             <SafeAreaView style={styles.container}>
                 <ScrollView>
                     <View style={styles.imageContainer}>
                         <Image
-                            source={{ uri: imageUri }}
+                            source={{ uri: imageUri || placeholderImage }}
                             style={styles.profileImage}
                         />
                         <TouchableOpacity onPress={handleChangePhoto}>
