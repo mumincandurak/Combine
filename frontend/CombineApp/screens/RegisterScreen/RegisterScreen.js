@@ -15,6 +15,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { COLORS } from "../colors";
 import apiClient from "../../api/client"; // API istekleri için
 import { FeOffset } from "react-native-svg";
+import { Ionicons } from "@expo/vector-icons";
 
 const RegisterScreen = ({ navigation }) => {
     // --- FORM STATE'LERİ ---
@@ -57,6 +58,9 @@ const RegisterScreen = ({ navigation }) => {
     const hasLower = /[a-z]/.test(password);
     const hasDigit = /\d/.test(password);
     const hasSpecial = /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(password);
+
+    const isPasswordValid = isLengthValid && hasUpper && hasLower && hasDigit && hasSpecial;
+    const isMatch = password && confirmPassword && password === confirmPassword;
 
     // --- Kullanıcı adı canlı kontrolleri (UI için) ---
     const trimmedUsername = String(username).trim();
@@ -243,17 +247,28 @@ const RegisterScreen = ({ navigation }) => {
                             keyboardType="email-address"
                         />
 
-                        <TextInput
-                            style={styles.input}
-                            placeholder="Password"
-                            placeholderTextColor={COLORS.gray}
-                            value={password}
-                            onChangeText={setPassword}
-                            onFocus={() => setPasswordFocused(true)}
-                            onBlur={() => setPasswordFocused(false)}
-                            secureTextEntry
-                        />
+                        <View style={styles.inputWrapper}>
+                            <TextInput
+                                style={styles.input}
+                                placeholder="Password"
+                                placeholderTextColor={COLORS.gray}
+                                value={password}
+                                onChangeText={setPassword}
+                                onFocus={() => setPasswordFocused(true)}
+                                onBlur={() => setPasswordFocused(false)}
+                                secureTextEntry
+                            />
+                            {isPasswordValid && (
+                                <Ionicons
+                                    name="checkmark-circle"
+                                    size={24}
+                                    color="green"
+                                    style={styles.checkIcon}
+                                />
+                            )}
+                        </View>
 
+                        <View style={styles.inputWrapper}>
                         <TextInput
                             style={styles.input}
                             placeholder="Confirm Password"
@@ -264,6 +279,15 @@ const RegisterScreen = ({ navigation }) => {
                             onBlur={() => setPasswordFocused(false)}
                             secureTextEntry
                         />
+                         {isMatch && (
+                                <Ionicons
+                                    name="checkmark-circle"
+                                    size={24}
+                                    color="green"
+                                    style={styles.checkIcon}
+                                />
+                            )}
+                        </View>
 
                         {/* Şifre kuralları - sadece şifre alanı focus olduğunda görünür */}
                         {passwordFocused && (
@@ -435,6 +459,15 @@ const styles = StyleSheet.create({
     },
     invalid: {
         color: "red",
+    },
+    inputWrapper: {
+        position: 'relative',
+        justifyContent: 'center',
+    },
+    checkIcon: {
+        position: 'absolute',
+        right: 15,
+        top: 13,
     },
 });
 
